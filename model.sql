@@ -162,6 +162,7 @@ BEGIN
         );
     END IF;
 END;
+/
 
 CREATE TABLE GruppenDienstLink (
     gruppe_id  INTEGER     NOT NULL,
@@ -192,6 +193,7 @@ BEGIN
         );
     END IF;
 END;
+/
 
 CREATE TABLE GruppenBeitrag (
     gruppe_id  INTEGER        NOT NULL,
@@ -226,6 +228,7 @@ BEGIN
         );
     END IF;
 END;
+/
 
 -- Studenten die in einer Gruppe sind.
 CREATE TABLE Gruppe_Student (

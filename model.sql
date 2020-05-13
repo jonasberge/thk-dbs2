@@ -262,8 +262,8 @@ END;
 
 -- Studenten die in einer Gruppe sind.
 CREATE TABLE Gruppe_Student (
-    gruppe_id      INTEGER,
-    student_id     INTEGER,
+    gruppe_id      INTEGER NOT NULL,
+    student_id     INTEGER NOT NULL,
     beitrittsdatum DATE NOT NULL,
     PRIMARY KEY (gruppe_id, student_id),
     FOREIGN KEY (gruppe_id)
@@ -274,8 +274,8 @@ CREATE TABLE Gruppe_Student (
 
 -- Anfrage eines Studenten um einer Gruppe beizutreten.
 CREATE TABLE GruppenAnfrage (
-    gruppe_id  INTEGER,
-    student_id INTEGER,
+    gruppe_id  INTEGER NOT NULL,
+    student_id INTEGER NOT NULL,
     datum      DATE NOT NULL,
     nachricht  VARCHAR2(256),
     PRIMARY KEY (gruppe_id, student_id),

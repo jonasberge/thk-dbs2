@@ -287,17 +287,16 @@ CREATE TABLE GruppenAnfrage (
 
 -- Eine Einladung zu einer Gruppe. Wird für Einladungslinks verwendet.
 CREATE TABLE GruppenEinladung (
-    id           INTEGER PRIMARY KEY,
+    kennung_id   INTEGER PRIMARY KEY,
     gruppe_id    INTEGER NOT NULL,
     ersteller_id INTEGER NOT NULL,
     gueltig_bis  DATE,
-    kennung_id   INTEGER NOT NULL UNIQUE,
+    FOREIGN KEY (kennung_id)
+        REFERENCES EindeutigeKennung (id),
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
     FOREIGN KEY (ersteller_id)
-        REFERENCES Student (id),
-    FOREIGN KEY (kennung_id)
-        REFERENCES EindeutigeKennung (id)
+        REFERENCES Student (id)
 );
 
 

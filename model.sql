@@ -346,37 +346,6 @@ CREATE TABLE GruppenEinladung (
 
 
 
-/*/ -- FIXME Ist das hier wirklich sinnvoll?
-
--- Ein Student kann bestimmte Module auswählen die für ihn relevant sind.
-CREATE TABLE Student_Modul (
-    student_id INTEGER,
-    modul_id   INTEGER,
-    FOREIGN KEY (student_id)
-        REFERENCES Student (id)
-            ON DELETE CASCADE,
-    FOREIGN KEY (modul_id)
-        REFERENCES Modul (id)
-            -- Falls ein Modul aus irgendeinem Grund gelöscht werden sollte
-            -- ist es hier sicher die Assoziation zwischen Student und Modul
-            -- zu löschen, da sie nur als Suchkriterium verwendet wird.
-            ON DELETE CASCADE
-);
-
--- TODO [Trigger] Nach Anlegen eines Studenten alle aktuellen Module auswählen.
--- Falls ein Student neu erstellt wird gehen wir davon aus dass er zuerst
--- einmal alle Module seines aktuellen Studiengangs ausgewählt haben möchte.
-
--- Nach der Registrierung landet der Nutzer dann auf der Suchseite und kann
--- dort dann feiner einstellen welche anderen Module er noch aufgelistet
--- bekommen möchte oder an welchen er nicht interessiert ist.
-
--- TODO [Trigger] Student kann nur Module des eigenen Studiengangs wählen.
-
-/**/
-
-
-
 /* -- Notizen
 
 CREATE OR REPLACE TYPE DienstLink_t AS OBJECT (

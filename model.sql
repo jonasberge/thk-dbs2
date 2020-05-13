@@ -221,6 +221,7 @@ END;
 /
 
 CREATE TABLE GruppenBeitrag (
+    id         INTEGER PRIMARY KEY,
     gruppe_id  INTEGER        NOT NULL,
     student_id INTEGER        NOT NULL,
     datum      DATE           NOT NULL,

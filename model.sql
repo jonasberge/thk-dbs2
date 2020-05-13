@@ -114,7 +114,7 @@ ALTER TABLE Student
 
 CREATE TABLE EindeutigeKennung (
     id      INTEGER PRIMARY KEY,
-    kennung CHAR(32) -- UUID
+    kennung CHAR(32) NOT NULL -- UUID
 );
 
 CREATE UNIQUE INDEX index_EindeutigeKennung_kennung

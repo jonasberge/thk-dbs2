@@ -190,8 +190,8 @@ END;
 /
 
 CREATE TABLE GruppenDienstLink (
-    gruppe_id  INTEGER     NOT NULL,
-    dienst_url HTTPURITYPE NOT NULL,
+    gruppe_id INTEGER     NOT NULL,
+    url       HTTPURITYPE NOT NULL,
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id)
 );

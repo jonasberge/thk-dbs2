@@ -143,6 +143,8 @@ CREATE TABLE StudentWiederherstellung (
 
 CREATE TABLE Gruppe (
     id           INTEGER PRIMARY KEY,
+    modul_id     INTEGER             NOT NULL,
+    ersteller_id INTEGER             NOT NULL,
     name         VARCHAR2(64)        NOT NULL,
     limit        INTEGER DEFAULT 8,
     oeffentlich  CHAR(1) DEFAULT '1' NOT NULL,
@@ -150,8 +152,6 @@ CREATE TABLE Gruppe (
     deadline     DATE,
     -- FIXME: Ort als Geokoordinaten abspeichern.
     ort          VARCHAR2(64),
-    modul_id     INTEGER,
-    ersteller_id INTEGER,
     FOREIGN KEY (modul_id)
         REFERENCES Modul (id),
     FOREIGN KEY (ersteller_id)

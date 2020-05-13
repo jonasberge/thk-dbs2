@@ -1,8 +1,35 @@
-/* Zusammenfassung:
+/* / - Zusammenfassung - /* /
 
-   -
+Eintrage mit [x] sind bereits implementiert.
+Solche mit einem leeren Kästchen [ ] müssen noch geschrieben werden.
+Falls hinter einem Eintrag `Xa` steht bedeutet das, dass die
+    Implementierung des Elements `X` `a`nweisungen beansprucht hat.
 
-*/
+
+[Trigger]
+    Student:
+        -
+
+trigger_GruppenDienstLink_limitiert
+trigger_GruppenBeitrag_datum
+
+    Gruppe:
+        [x] `trigger_Gruppe_deadline` - 1a
+            Spalte `deadline` darf beim Einfügen das aktuelle
+            Datum nicht überschreiten. (2 Anweisungen)
+
+    GruppenDienstLink:
+        [x] `trigger_GruppenDienstLink_limitiert` - 3a
+            Anzahl der Dienstlinks für eine Gruppe
+            darf nicht das Limit überschreiten.
+
+
+[Scheduler]
+    Student:
+        [ ] Spalte `semester` erhöhen sobald das nächste Semester beginnt.
+
+
+/**/
 
 
 DROP TABLE GruppenEinladung;
@@ -47,10 +74,7 @@ CREATE TABLE Modul (
     id             INTEGER PRIMARY KEY,
     name           VARCHAR2(64) NOT NULL,
     dozent         VARCHAR(64)  NOT NULL,
-    studiengang_id INTEGER      NOT NULL,
-    semester       INTEGER,
-    FOREIGN KEY (studiengang_id)
-        REFERENCES Studiengang (id)
+    semester       INTEGER
 );
 
 ALTER TABLE Modul
@@ -213,6 +237,9 @@ ALTER TABLE GruppenBeitrag
     ADD CONSTRAINT check_GruppenBeitrag_nachricht
         CHECK (LENGTH(nachricht) > 0);
 
+-- TODO Anstatt eines Triggers welcher das Datum des erstellten Beitrags
+--      überprüft, wäre eine Prozedur welche einen Beitrag erstellt sinnvoller.
+/*/
 -- FIXME: Trigger wurde einfach nur von `trigger_Gruppe_deadline` kopiert.
 CREATE TRIGGER trigger_GruppenBeitrag_datum
     BEFORE INSERT
@@ -229,6 +256,7 @@ BEGIN
     END IF;
 END;
 /
+/**/
 
 -- Studenten die in einer Gruppe sind.
 CREATE TABLE Gruppe_Student (
@@ -308,7 +336,8 @@ CREATE TABLE GruppenEinladung (
 -- 1) Die Gruppe ist vollständig belegt -> ERROR
 -- 2) Sonst -> Student hinzufügen und alle anderen
 --      Anfragen des Studenten welche zum selben Modul gehören löschen.
---      Man möchte wahrscheinlich nicht mehrere
+--      Man möchte wahrscheinlich nicht mehrere Gruppen für ein Modul belegen.
+--      Oder doch?
 
 -- TODO [Prozedur] Eine Beitrittsanfrage ablehnen.
 

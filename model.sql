@@ -96,12 +96,13 @@ CREATE TABLE Student (
     id                  INTEGER PRIMARY KEY,
     name                VARCHAR2(64)      NOT NULL,
     smail_adresse       VARCHAR2(64)      NOT NULL,
+    studiengang_id      INTEGER           NOT NULL,
+    semester            INTEGER DEFAULT 1 NOT NULL,
     -- TODO: Hash-Größe hängt von Implementierung ab.
     passwort_hash       VARCHAR2(64)      NOT NULL,
     profil_beschreibung VARCHAR(256),
     profil_bild         BLOB,
-    studiengang_id      INTEGER           NOT NULL,
-    semester            INTEGER DEFAULT 1 NOT NULL,
+    geburtstag          DATE,
     FOREIGN KEY (studiengang_id)
         REFERENCES Studiengang (id)
 );
@@ -141,16 +142,16 @@ CREATE TABLE StudentWiederherstellung (
 );
 
 CREATE TABLE Gruppe (
-    id               INTEGER PRIMARY KEY,
-    name             VARCHAR2(64)        NOT NULL,
-    limit            INTEGER DEFAULT 8,
-    oeffentlich      CHAR(1) DEFAULT '1' NOT NULL,
-    betretbar        CHAR(1) DEFAULT '0' NOT NULL,
-    deadline         DATE,
+    id           INTEGER PRIMARY KEY,
+    name         VARCHAR2(64)        NOT NULL,
+    limit        INTEGER DEFAULT 8,
+    oeffentlich  CHAR(1) DEFAULT '1' NOT NULL,
+    betretbar    CHAR(1) DEFAULT '0' NOT NULL,
+    deadline     DATE,
     -- FIXME: Ort als Geokoordinaten abspeichern.
-    ort              VARCHAR2(64),
-    modul_id         INTEGER,
-    ersteller_id     INTEGER,
+    ort          VARCHAR2(64),
+    modul_id     INTEGER,
+    ersteller_id INTEGER,
     FOREIGN KEY (modul_id)
         REFERENCES Modul (id),
     FOREIGN KEY (ersteller_id)

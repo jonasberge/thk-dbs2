@@ -102,7 +102,7 @@ CREATE TABLE Student (
     passwort_hash       VARCHAR2(64)      NOT NULL,
     profil_beschreibung VARCHAR(256),
     profil_bild         BLOB,
-    geburtstag          DATE,
+    geburtsdatum        DATE,
     FOREIGN KEY (studiengang_id)
         REFERENCES Studiengang (id)
 );

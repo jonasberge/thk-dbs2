@@ -123,22 +123,22 @@ CREATE UNIQUE INDEX index_EindeutigeKennung_kennung
 
 -- Ein Eintrag zur Verifizierung des Nutzer-Accounts.
 CREATE TABLE StudentVerifizierung (
-    student_id INTEGER PRIMARY KEY,
-    kennung_id INTEGER NOT NULL UNIQUE,
-    FOREIGN KEY (student_id)
-        REFERENCES Student (id),
+    kennung_id INTEGER PRIMARY KEY,
+    student_id INTEGER NOT NULL UNIQUE,
     FOREIGN KEY (kennung_id)
-        REFERENCES EindeutigeKennung (id)
+        REFERENCES EindeutigeKennung (id),
+    FOREIGN KEY (student_id)
+        REFERENCES Student (id)
 );
 
 -- Ein Eintrag zur Widerherstellung des Passworts eines Studenten.
 CREATE TABLE StudentWiederherstellung (
-    student_id INTEGER PRIMARY KEY,
-    kennung_id INTEGER NOT NULL UNIQUE,
-    FOREIGN KEY (student_id)
-        REFERENCES Student (id),
+    kennung_id INTEGER PRIMARY KEY,
+    student_id INTEGER NOT NULL UNIQUE,
     FOREIGN KEY (kennung_id)
-        REFERENCES EindeutigeKennung (id)
+        REFERENCES EindeutigeKennung (id),
+    FOREIGN KEY (student_id)
+        REFERENCES Student (id)
 );
 
 CREATE TABLE Gruppe (

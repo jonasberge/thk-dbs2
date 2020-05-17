@@ -345,6 +345,18 @@ CREATE TABLE GruppenEinladung (
 -- TODO [Prozedur] Eine Beitrittsanfrage ablehnen.
 
 
+-- region Sequenzen
+
+CREATE SEQUENCE sequence_Fakultaet;
+CREATE SEQUENCE sequence_Studiengang;
+CREATE SEQUENCE sequence_Modul;
+CREATE SEQUENCE sequence_Student;
+CREATE SEQUENCE sequence_EindeutigeKennung;
+CREATE SEQUENCE sequence_Gruppe;
+CREATE SEQUENCE sequence_GruppenBeitrag;
+
+-- endregion
+
 
 /* -- Notizen
 

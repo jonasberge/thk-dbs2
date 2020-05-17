@@ -1,37 +1,3 @@
-/* / - Zusammenfassung - /* /
-
-Eintrage mit [x] sind bereits implementiert.
-Solche mit einem leeren Kästchen [ ] müssen noch geschrieben werden.
-Falls hinter einem Eintrag `Xa` steht bedeutet das, dass die
-    Implementierung des Elements `X` `a`nweisungen beansprucht hat.
-
-
-[Trigger]
-    Student:
-        -
-
-trigger_GruppenDienstLink_limitiert
-trigger_GruppenBeitrag_datum
-
-    Gruppe:
-        [x] `trigger_Gruppe_deadline` - 1a
-            Spalte `deadline` darf beim Einfügen das aktuelle
-            Datum nicht überschreiten. (2 Anweisungen)
-
-    GruppenDienstLink:
-        [x] `trigger_GruppenDienstLink_limitiert` - 3a
-            Anzahl der Dienstlinks für eine Gruppe
-            darf nicht das Limit überschreiten.
-
-
-[Scheduler]
-    Student:
-        [ ] Spalte `semester` erhöhen sobald das nächste Semester beginnt.
-
-
-/**/
-
-
 DROP TABLE GruppenEinladung;
 DROP TABLE GruppenAnfrage;
 DROP TABLE Gruppe_Student;

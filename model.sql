@@ -1,4 +1,4 @@
--- region DROP TABLE
+-- region DROP - Tabellen und Sequenzen löschen
 
 DROP TABLE GruppenEinladung;
 DROP TABLE GruppenAnfrage;
@@ -15,10 +15,17 @@ DROP TABLE Modul;
 DROP TABLE Studiengang;
 DROP TABLE Fakultaet;
 
+DROP SEQUENCE sequence_Fakultaet;
+DROP SEQUENCE sequence_Studiengang;
+DROP SEQUENCE sequence_Modul;
+DROP SEQUENCE sequence_Student;
+DROP SEQUENCE sequence_EindeutigeKennung;
+DROP SEQUENCE sequence_Gruppe;
+DROP SEQUENCE sequence_GruppenBeitrag;
+
 -- endregion
 
-
--- region TABLE
+-- region TABLE - Tabellen erstellen
 
 CREATE TABLE Fakultaet (
     id       INTEGER PRIMARY KEY,
@@ -212,8 +219,7 @@ CREATE TABLE GruppenEinladung (
 
 -- endregion
 
-
--- region TRIGGER
+-- region TRIGGER - Trigger erstellen
 
 CREATE TRIGGER trigger_Gruppe_deadline
     BEFORE INSERT
@@ -283,8 +289,7 @@ END;
 
 -- endregion
 
-
--- region PROCEDURE
+-- region PROCEDURE - Prozeduren erstellen
 
 -- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
 -- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
@@ -324,8 +329,7 @@ END;
 
 -- endregion
 
-
--- region SEQUENCE
+-- region SEQUENCE - Sequenzen erstellen
 
 CREATE SEQUENCE sequence_Fakultaet;
 CREATE SEQUENCE sequence_Studiengang;

@@ -291,6 +291,76 @@ END;
 
 -- region PROCEDURE - Prozeduren erstellen
 
+CREATE OR REPLACE PROCEDURE GruppeLoeschen
+    (id IN INTEGER)
+IS
+BEGIN
+    DELETE FROM GruppenAnfrage ga WHERE ga.gruppe_id = id;
+    DELETE FROM GruppenEinladung ge WHERE ge.gruppe_id = id;
+    DELETE FROM GruppenDienstlink gdl WHERE gdl.gruppe_id = id;
+    DELETE FROM GruppenBeitrag gb WHERE gb.gruppe_id = GruppeLoeschen.id;
+    DELETE FROM Gruppe_Student gs WHERE gs.gruppe_id = id;
+    DELETE FROM Gruppe g WHERE g.id = GruppeLoeschen.id;
+END;
+
+CREATE OR REPLACE PROCEDURE AccountZuruecksetzen
+    (student_id IN INTEGER)
+IS
+    anzahl_mitglieder INTEGER;
+    erstellte_gruppe_id INTEGER;
+    CURSOR cursor_ErstellteGruppen IS
+        SELECT id
+        FROM Gruppe g
+        WHERE g.ersteller_id = student_id;
+BEGIN
+    -- Lösche Gruppenmitgliedschaften des Nutzers.
+    DELETE FROM Gruppe_Student gs
+    WHERE gs.student_id = AccountZuruecksetzen.student_id;
+
+    OPEN cursor_ErstellteGruppen;
+    LOOP
+        FETCH cursor_ErstellteGruppen INTO erstellte_gruppe_id;
+        EXIT WHEN cursor_ErstellteGruppen % NOTFOUND;
+
+        SELECT COUNT(gs.student_id) INTO anzahl_mitglieder
+        FROM Gruppe_Student gs
+        WHERE gs.gruppe_id = erstellte_gruppe_id;
+
+        IF anzahl_mitglieder = 0 THEN
+            -- Lösche erstellte Gruppen in denen der Nutzer das einzige Mitglied war.
+            GruppeLoeschen(erstellte_gruppe_id);
+        ELSE
+            -- TODO: ersteller_id in Gruppe zu besitzer_id ändern.
+            -- Setze Gruppenbesitzer auf den Nutzer der am frühesten beigetreten ist.
+            UPDATE Gruppe g
+            SET g.ersteller_id = (
+                SELECT gs.student_id
+                FROM Gruppe_Student gs
+                WHERE gs.gruppe_id = erstellte_gruppe_id
+                ORDER BY beitrittsdatum
+                FETCH FIRST ROW ONLY
+            )
+            WHERE g.id = erstellte_gruppe_id;
+        END IF;
+    END LOOP;
+    CLOSE cursor_ErstellteGruppen;
+
+    -- TODO: student_id in GruppenBeitrag zu ersteller_id umbennen.
+    UPDATE GruppenBeitrag gb
+    SET gb.student_id = NULL
+    WHERE gb.student_id = AccountZuruecksetzen.student_id;
+
+    UPDATE GruppenEinladung ge
+    SET ge.ersteller_id = NULL
+    WHERE ge.ersteller_id = AccountZuruecksetzen.student_id;
+
+    DELETE FROM GruppenAnfrage ga
+    WHERE ga.student_id = AccountZuruecksetzen.student_id;
+
+    DELETE FROM Student s
+    WHERE s.id = student_id;
+END;
+
 -- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
 -- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
 -- Nützlich für Client-seitiges welches nur für verifizierte Nutzer möglich ist.

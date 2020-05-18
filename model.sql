@@ -153,7 +153,7 @@ CREATE TABLE GruppenDienstLink (
 CREATE TABLE GruppenBeitrag (
     id         INTEGER PRIMARY KEY,
     gruppe_id  INTEGER        NOT NULL,
-    student_id INTEGER        NOT NULL,
+    student_id INTEGER, -- Darf NULL sein, falls Nutzer gelöscht wurde.
     datum      DATE           NOT NULL,
     nachricht  VARCHAR2(1024) NOT NULL,
     FOREIGN KEY (gruppe_id)
@@ -198,7 +198,7 @@ CREATE TABLE GruppenAnfrage (
 CREATE TABLE GruppenEinladung (
     kennung_id   INTEGER PRIMARY KEY,
     gruppe_id    INTEGER NOT NULL,
-    ersteller_id INTEGER NOT NULL,
+    ersteller_id INTEGER, -- Darf NULL sein, falls Nutzer gelöscht wurde.
     gueltig_bis  DATE,
     FOREIGN KEY (kennung_id)
         REFERENCES EindeutigeKennung (id),

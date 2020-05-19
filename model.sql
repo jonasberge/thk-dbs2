@@ -255,7 +255,7 @@ DECLARE
     CURSOR cursor_Gruppe_Attribute IS
         SELECT limit, betretbar, deadline
         FROM Gruppe g
-        WHERE g.gruppe_id = :new.gruppe_id;
+        WHERE g.id = :new.gruppe_id;
 BEGIN
     -- Cursor, Select, If, Delete, Fehlermeldung (5 Anweisungen)
 
@@ -271,28 +271,28 @@ BEGIN
     FROM Gruppe_Student
     WHERE gruppe_id = :new.gruppe_id;
 
-    IF anzahl_mitglieder >= gruppe_limit THEN
+    IF anzahl_mitglieder >= g_limit THEN
         RAISE_APPLICATION_ERROR(-20001, 'Gruppe bereits vollständig.');
     END IF;
 
-    IF gruppe_deadline < SYSDATE THEN
+    IF g_deadline < SYSDATE THEN
         RAISE_APPLICATION_ERROR(-20002, 'Beitritt nicht mehr möglich, Deadline überschritten.');
     END IF;
 
-    IF gruppe_betretbar = '0' THEN
+    IF g_betretbar = '0' THEN
         SELECT COUNT(*) INTO anfrage_bestaetigt
         FROM GruppenAnfrage
         WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id AND bestaetigt = '1';
 
-        IF request_approved <> 1 THEN
+        IF anfrage_bestaetigt <> 1 THEN
             RAISE_APPLICATION_ERROR(-20003, 'Beitritt nur bei bestätigter Anfrage möglich.');
         END IF;
     END IF;
 
     -- Ggf. Vorhandende Beitrittsanfrage löschen
-    DELETE FROM GruppenAnfrage WHERE gruppe_id = group_id AND student_id = s_id;
+    DELETE FROM GruppenAnfrage WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id;
 
-    IF SQL%ROWCOUNT > 0 THEN
+    IF SQL % ROWCOUNT > 0 THEN
         DBMS_OUTPUT.PUT_LINE('Vorhandende Beitrittsanfrage gelöscht');
     END IF;
 END;

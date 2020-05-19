@@ -231,7 +231,6 @@ CREATE TABLE GruppenEinladung (
     -20001, Gruppe bereits vollständig
     -20002, Beitritt nicht mehr möglich, Deadline überschritten.
     -20003, Beitritt nur bei bestätigter Anfrage möglich.
-    -20009, Gruppendaten konnten nicht abgerufen werden.
 
     Gruppendienstlink-Trigger
     -20011, Überschreitung der maximalen Anzahl an Dienstlinks.
@@ -251,21 +250,13 @@ DECLARE
 
     anzahl_mitglieder   INTEGER DEFAULT 0;
     anfrage_bestaetigt  INTEGER DEFAULT 0;
-
-    CURSOR cursor_Gruppe_Attribute IS
-        SELECT limit, betretbar, deadline
-        FROM Gruppe g
-        WHERE g.id = :new.gruppe_id;
 BEGIN
-    -- Cursor, Select, If, Delete, Fehlermeldung (5 Anweisungen)
+    -- Select, If, Delete, Fehlermeldung, Output (5 Anweisungen)
 
-    OPEN cursor_Gruppe_Attribute;
-    FETCH cursor_Gruppe_Attribute INTO g_limit, g_betretbar, g_deadline;
-    IF cursor_Gruppe_Attribute % NOTFOUND THEN
-        RAISE_APPLICATION_ERROR(-20009, 'Gruppendaten konnten nicht abgerufen werden.');
-    END IF;
-    CLOSE cursor_Gruppe_Attribute;
-
+    SELECT limit, betretbar, deadline
+    INTO g_limit, g_betretbar, g_deadline
+    FROM Gruppe g
+    WHERE g.id = :new.gruppe_id;
 
     SELECT COUNT(*) INTO anzahl_mitglieder
     FROM Gruppe_Student

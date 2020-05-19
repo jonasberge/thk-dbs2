@@ -194,12 +194,17 @@ CREATE TABLE GruppenAnfrage (
     student_id INTEGER NOT NULL,
     datum      DATE    NOT NULL,
     nachricht  VARCHAR2(256),
+    bestaetigt CHAR(1) DEFAULT '0' NOT NULL,
     PRIMARY KEY (gruppe_id, student_id),
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
     FOREIGN KEY (student_id)
         REFERENCES Student (id)
 );
+
+ALTER TABLE GruppenAnfrage
+    ADD CONSTRAINT check_GruppenAnfrage_betretbar
+        CHECK (bestaetigt in ('1', '0'));
 
 -- Eine Einladung zu einer Gruppe. Wird für Einladungslinks verwendet.
 CREATE TABLE GruppenEinladung (
@@ -219,20 +224,76 @@ CREATE TABLE GruppenEinladung (
 
 -- endregion
 
+-- region APPLICATION_ERROR - Eigene Fehlermeldungen
+
+/*
+    Gruppenbeitritts-Trigger
+    -20001, Gruppe bereits vollständig
+    -20002, Beitritt nicht mehr möglich, Deadline überschritten.
+    -20003, Beitritt nur bei bestätigter Anfrage möglich.
+    -20009, Gruppendaten konnten nicht abgerufen werden.
+
+    Gruppendienstlink-Trigger
+    -20011, Überschreitung der maximalen Anzahl an Dienstlinks.
+*/
+
+-- endregion
+
 -- region TRIGGER - Trigger erstellen
 
-CREATE TRIGGER trigger_Gruppe_deadline
-    BEFORE INSERT
-    ON Gruppe
-    FOR EACH ROW
+CREATE TRIGGER trigger_Gruppe_beitreten
+    BEFORE INSERT ON Gruppe_Student
+FOR EACH ROW
+DECLARE
+    g_limit        INTEGER;
+    g_betretbar    CHAR;
+    g_deadline     DATE;
+
+    anzahl_mitglieder   INTEGER DEFAULT 0;
+    anfrage_bestaetigt  INTEGER DEFAULT 0;
+
+    CURSOR cursor_Gruppe_Attribute IS
+        SELECT limit, betretbar, deadline
+        FROM Gruppe g
+        WHERE g.gruppe_id = :new.gruppe_id;
 BEGIN
-    IF (:NEW.deadline < SYSDATE)
-    THEN
-        RAISE_APPLICATION_ERROR(
-            -20001,
-            'Deadline darf nicht in der Vergangenheit liegen.' ||
-                to_char(:NEW.deadline, 'YYYY-MM-DD HH24:MI:SS')
-        );
+    -- Cursor, Select, If, Delete, Fehlermeldung (5 Anweisungen)
+
+    OPEN cursor_Gruppe_Attribute;
+    FETCH cursor_Gruppe_Attribute INTO g_limit, g_betretbar, g_deadline;
+    IF cursor_Gruppe_Attribute % NOTFOUND THEN
+        RAISE_APPLICATION_ERROR(-20009, 'Gruppendaten konnten nicht abgerufen werden.');
+    END IF;
+    CLOSE cursor_Gruppe_Attribute;
+
+
+    SELECT COUNT(*) INTO anzahl_mitglieder
+    FROM Gruppe_Student
+    WHERE gruppe_id = :new.gruppe_id;
+
+    IF anzahl_mitglieder >= gruppe_limit THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Gruppe bereits vollständig.');
+    END IF;
+
+    IF gruppe_deadline < SYSDATE THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Beitritt nicht mehr möglich, Deadline überschritten.');
+    END IF;
+
+    IF gruppe_betretbar = '0' THEN
+        SELECT COUNT(*) INTO anfrage_bestaetigt
+        FROM GruppenAnfrage
+        WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id AND bestaetigt = '1';
+
+        IF request_approved <> 1 THEN
+            RAISE_APPLICATION_ERROR(-20003, 'Beitritt nur bei bestätigter Anfrage möglich.');
+        END IF;
+    END IF;
+
+    -- Ggf. Vorhandende Beitrittsanfrage löschen
+    DELETE FROM GruppenAnfrage WHERE gruppe_id = group_id AND student_id = s_id;
+
+    IF SQL%ROWCOUNT > 0 THEN
+        DBMS_OUTPUT.PUT_LINE('Vorhandende Beitrittsanfrage gelöscht');
     END IF;
 END;
 /
@@ -253,7 +314,7 @@ BEGIN
 
     IF (v_anzahl > v_limit) THEN
         RAISE_APPLICATION_ERROR(
-            -20003,
+            -20011,
             'Eine Gruppe kann nicht mehr als '
                     || v_limit || ' Dienstlinks haben.'
         );

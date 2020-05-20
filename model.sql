@@ -188,6 +188,15 @@ CREATE TABLE Gruppe_Student (
         REFERENCES Student (id)
 );
 
+-- Füge berechnetes Attribut anzahl_mitglieder zu Gruppe hinzu
+ALTER TABLE Gruppe
+ADD COLUMN anzahl_mitglieder
+COMPUTED BY (
+    SELECT COUNT(*)
+    FROM Gruppe_Student gs
+    WHERE gs.gruppe_id = gruppe.id
+);
+
 -- Anfrage eines Studenten um einer Gruppe beizutreten.
 CREATE TABLE GruppenAnfrage (
     gruppe_id  INTEGER NOT NULL,

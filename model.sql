@@ -256,24 +256,19 @@ CREATE OR REPLACE TRIGGER trigger_Gruppe_beitreten
     BEFORE INSERT ON Gruppe_Student
 FOR EACH ROW
 DECLARE
-    g_limit        INTEGER;
-    g_betretbar    CHAR;
-    g_deadline     DATE;
+    g_limit             INTEGER;
+    g_betretbar         CHAR;
+    g_deadline          DATE;
+    g_anzahl_mitglieder INTEGER;
 
-    anzahl_mitglieder   INTEGER DEFAULT 0;
     anfrage_bestaetigt  CHAR DEFAULT '0';
 BEGIN
     -- Select, If, Delete, Fehlermeldung, Output (5 Anweisungen)
 
-    SELECT limit, betretbar, deadline
-    INTO g_limit, g_betretbar, g_deadline
+    SELECT anzahl_mitglieder, limit, betretbar, deadline
+    INTO g_anzahl_mitglieder, g_limit, g_betretbar, g_deadline
     FROM Gruppe g
     WHERE g.id = :new.gruppe_id;
-
-    -- FIXME: Mutating-Table-Problem
-    SELECT COUNT(*) INTO anzahl_mitglieder
-    FROM Gruppe_Student
-    WHERE gruppe_id = :new.gruppe_id;
 
     IF anzahl_mitglieder >= g_limit THEN
         RAISE_APPLICATION_ERROR(-20001, 'Gruppe bereits vollständig.');

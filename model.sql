@@ -378,8 +378,8 @@ COMPOUND TRIGGER
 
                 -- Der Ersteller befindet sich nicht mehr in der Gruppe.
 
-                -- Unter den noch vorhandenen Nutzern wird derjenige zum neuen
-                -- Ersteller, welcher am frühesten die Gruppe betreten hat.
+                -- Unter den noch vorhandenen Nutzern wird derjenige zum
+                -- neuen Besitzer erwählt, welcher zuerst beigetreten ist.
 
                 SELECT gs.student_id INTO neuer_besitzer_id
                 FROM Gruppe_Student gs

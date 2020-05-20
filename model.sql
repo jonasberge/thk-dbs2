@@ -316,31 +316,79 @@ BEGIN
 END;
 /
 
--- TODO Anstatt eines Triggers welcher das Datum des erstellten Beitrags
---      überprüft, wäre eine Prozedur welche einen Beitrag erstellt sinnvoller.
-/*/
--- FIXME: Trigger wurde einfach nur von `trigger_Gruppe_deadline` kopiert.
-CREATE TRIGGER trigger_GruppenBeitrag_datum
-    BEFORE INSERT
-    ON GruppenBeitrag
-    FOR EACH ROW
-BEGIN
-    IF (:NEW.datum < SYSDATE)
-    THEN
-        RAISE_APPLICATION_ERROR(
-            -20002,
-            'Datum darf nicht in der Vergangenheit liegen.' ||
-                to_char(:NEW.datum, 'YYYY-MM-DD HH24:MI:SS')
-        );
-    END IF;
-END;
-/
-/**/
-
 -- TODO [Trigger] Einfügen überlappender Treffzeiten zusammenführen.
 -- Falls ein einzufügender Zeitintervall mit einem anderen überlappt
 -- sollte der existierende geupdated werden anstatt einen Fehler zu werden.
 -- -> { von: MIN(:old.von, :new.von), bis: MAX(:old.bis, :new.bis) }
+
+CREATE OR REPLACE TRIGGER trigger_GruppeVerlassen
+FOR DELETE ON Gruppe_Student
+COMPOUND TRIGGER
+    TYPE gruppe_t IS TABLE OF Gruppe_Student.gruppe_id % TYPE;
+
+    g_gruppen gruppe_t := gruppe_t();
+
+    AFTER EACH ROW IS
+    BEGIN
+        g_gruppen.EXTEND;
+        g_gruppen(g_gruppen.LAST) := :old.gruppe_id;
+    END AFTER EACH ROW;
+
+    AFTER STATEMENT IS
+        modifizierte_gruppe_id Gruppe_Student.gruppe_id % TYPE;
+        ersteller_id           Gruppe_Student.student_id % TYPE; -- TODO: ersteller_id
+        neuer_besitzer_id      Gruppe.ersteller_id % TYPE;
+        anzahl_mitglieder      INTEGER;
+        ist_ersteller_mitglied INTEGER;
+    BEGIN
+        IF g_gruppen IS NOT EMPTY THEN
+            -- Jede involvierte Gruppe muss nur einmal überprüft werden.
+            g_gruppen = SET(g_gruppen);
+
+            FOR i IN g_gruppen.FIRST .. g_gruppen.LAST
+            LOOP
+                SELECT g_gruppen(i) INTO modifizierte_gruppe_id FROM dual;
+
+                SELECT COUNT(gs.student_id) INTO anzahl_mitglieder
+                FROM Gruppe_Student gs
+                WHERE gs.gruppe_id = modifizierte_gruppe_id;
+
+                IF anzahl_mitglieder = 0 THEN
+                    -- Es ist kein Mitglied mehr übrig, die Gruppe kann gelöscht werden.
+                    GruppeLoeschen(modifizierte_gruppe_id);
+                    CONTINUE;
+                END IF;
+
+                SELECT g.ersteller_id INTO ersteller_id
+                FROM Gruppe g WHERE g.id = modifizierte_gruppe_id;
+
+                SELECT COUNT(gs.student_id) INTO ist_ersteller_mitglied
+                FROM Gruppe_Student gs
+                WHERE gs.gruppe_id = modifizierte_gruppe_id
+                    AND gs.student_id = ersteller_id;
+
+                IF ist_ersteller_mitglied = 1 THEN
+                    CONTINUE;
+                END IF;
+
+                -- Der Ersteller befindet sich nicht mehr in der Gruppe.
+
+                -- Unter den noch vorhandenen Nutzern wird derjenige zum neuen
+                -- Ersteller, welcher am frühesten die Gruppe betreten hat.
+
+                SELECT gs.student_id INTO neuer_besitzer_id
+                FROM Gruppe_Student gs
+                WHERE gs.gruppe_id = modifizierte_gruppe_id
+                ORDER BY beitrittsdatum
+                FETCH FIRST ROW ONLY;
+
+                UPDATE Gruppe g
+                SET g.ersteller_id = neuer_besitzer_id
+                WHERE g.id = modifizierte_gruppe_id;
+            END LOOP;
+        END IF;
+    END AFTER STATEMENT;
+END;
 
 -- endregion
 
@@ -361,12 +409,6 @@ END;
 CREATE OR REPLACE PROCEDURE AccountZuruecksetzen
     (student_id IN INTEGER)
 IS
-    anzahl_mitglieder INTEGER;
-    erstellte_gruppe_id INTEGER;
-    CURSOR cursor_ErstellteGruppen IS
-        SELECT id
-        FROM Gruppe g
-        WHERE g.ersteller_id = student_id;
     student_existiert INTEGER;
 BEGIN
     SELECT COUNT(1) INTO student_existiert FROM dual;
@@ -379,36 +421,9 @@ BEGIN
     END IF;
 
     -- Lösche Gruppenmitgliedschaften des Nutzers.
+    -- Löst den oben definierten Trigger aus.
     DELETE FROM Gruppe_Student gs
     WHERE gs.student_id = AccountZuruecksetzen.student_id;
-
-    OPEN cursor_ErstellteGruppen;
-    LOOP
-        FETCH cursor_ErstellteGruppen INTO erstellte_gruppe_id;
-        EXIT WHEN cursor_ErstellteGruppen % NOTFOUND;
-
-        SELECT COUNT(gs.student_id) INTO anzahl_mitglieder
-        FROM Gruppe_Student gs
-        WHERE gs.gruppe_id = erstellte_gruppe_id;
-
-        IF anzahl_mitglieder = 0 THEN
-            -- Lösche erstellte Gruppen in denen der Nutzer das einzige Mitglied war.
-            GruppeLoeschen(erstellte_gruppe_id);
-        ELSE
-            -- TODO: ersteller_id in Gruppe zu besitzer_id ändern.
-            -- Setze Gruppenbesitzer auf den Nutzer der am frühesten beigetreten ist.
-            UPDATE Gruppe g
-            SET g.ersteller_id = (
-                SELECT gs.student_id
-                FROM Gruppe_Student gs
-                WHERE gs.gruppe_id = erstellte_gruppe_id
-                ORDER BY beitrittsdatum
-                FETCH FIRST ROW ONLY
-            )
-            WHERE g.id = erstellte_gruppe_id;
-        END IF;
-    END LOOP;
-    CLOSE cursor_ErstellteGruppen;
 
     -- TODO: student_id in GruppenBeitrag zu ersteller_id umbennen.
     UPDATE GruppenBeitrag gb

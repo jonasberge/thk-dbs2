@@ -243,7 +243,7 @@ CREATE TABLE GruppenEinladung (
 
 -- region TRIGGER - Trigger erstellen
 
-CREATE TRIGGER trigger_Gruppe_beitreten
+CREATE OR REPLACE TRIGGER trigger_Gruppe_beitreten
     BEFORE INSERT ON Gruppe_Student
 FOR EACH ROW
 DECLARE
@@ -292,7 +292,7 @@ BEGIN
 END;
 /
 
-CREATE TRIGGER trigger_GruppenDienstLink_limitiert
+CREATE OR REPLACE TRIGGER trigger_GruppenDienstLink_limitiert
     BEFORE INSERT
     ON GruppenDienstLink
 DECLARE

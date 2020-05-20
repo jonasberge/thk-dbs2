@@ -249,7 +249,7 @@ DECLARE
     g_deadline     DATE;
 
     anzahl_mitglieder   INTEGER DEFAULT 0;
-    anfrage_bestaetigt  INTEGER DEFAULT 0;
+    anfrage_bestaetigt  CHAR DEFAULT '0';
 BEGIN
     -- Select, If, Delete, Fehlermeldung, Output (5 Anweisungen)
 
@@ -271,11 +271,11 @@ BEGIN
     END IF;
 
     IF g_betretbar = '0' THEN
-        SELECT COUNT(*) INTO anfrage_bestaetigt
+        SELECT bestaetigt INTO anfrage_bestaetigt
         FROM GruppenAnfrage
-        WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id AND bestaetigt = '1';
+        WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id;
 
-        IF anfrage_bestaetigt <> 1 THEN
+        IF SQL%ROWCOUNT = 0 OR anfrage_bestaetigt = '0' THEN
             RAISE_APPLICATION_ERROR(-20003, 'Beitritt nur bei bestätigter Anfrage möglich.');
         END IF;
     END IF;
@@ -283,7 +283,7 @@ BEGIN
     -- Ggf. Vorhandende Beitrittsanfrage löschen
     DELETE FROM GruppenAnfrage WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id;
 
-    IF SQL % ROWCOUNT > 0 THEN
+    IF SQL%ROWCOUNT > 0 THEN
         DBMS_OUTPUT.PUT_LINE('Vorhandende Beitrittsanfrage gelöscht');
     END IF;
 END;

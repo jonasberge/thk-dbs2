@@ -332,6 +332,9 @@ COMPOUND TRIGGER
     BEGIN
         g_gruppen.EXTEND;
         g_gruppen(g_gruppen.LAST) := :old.gruppe_id;
+
+        GruppenBeitragVerfassen(StudentenName(:old.student_id)
+            || ' hat die Gruppe verlassen.', :old.gruppe_id);
     END AFTER EACH ROW;
 
     AFTER STATEMENT IS
@@ -385,6 +388,9 @@ COMPOUND TRIGGER
                 UPDATE Gruppe g
                 SET g.ersteller_id = neuer_besitzer_id
                 WHERE g.id = modifizierte_gruppe_id;
+
+                GruppenBeitragVerfassen(StudentenName(neuer_besitzer_id)
+                    || ' wurde zum neuen Gruppenleiter erwählt.', modifizierte_gruppe_id);
             END LOOP;
         END IF;
     END AFTER STATEMENT;
@@ -392,7 +398,37 @@ END;
 
 -- endregion
 
+-- region FUNCTION - Funktionen erstellen
+
+CREATE OR REPLACE FUNCTION StudentenName
+    (student_id INTEGER)
+RETURN Student.name % TYPE
+IS
+    name Student.name % TYPE;
+BEGIN
+    SELECT s.name INTO name
+    FROM Student s
+    WHERE s.id = student_id;
+
+    RETURN name;
+END;
+/
+
+-- endregion
+
 -- region PROCEDURE - Prozeduren erstellen
+
+CREATE OR REPLACE PROCEDURE GruppenBeitragVerfassen
+    (nachricht IN GruppenBeitrag.nachricht % TYPE,
+     gruppe_id IN INTEGER, student_id IN INTEGER DEFAULT NULL)
+IS
+BEGIN
+    INSERT INTO GruppenBeitrag gb (id, gb.gruppe_id, gb.student_id, datum, gb.nachricht)
+    VALUES (sequence_GruppenBeitrag.nextval,
+            GruppenBeitragVerfassen.gruppe_id,
+            GruppenBeitragVerfassen.student_id, SYSDATE,
+            GruppenBeitragVerfassen.nachricht);
+END;
 
 CREATE OR REPLACE PROCEDURE GruppeLoeschen
     (id IN INTEGER)

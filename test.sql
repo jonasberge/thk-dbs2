@@ -13,6 +13,8 @@ DROP VIEW view_test_AccountZuruecksetzen;
 
 -- region [Test] Account zurücksetzen
 
+-- region [setup]
+
 CREATE VIEW view_test_AccountZuruecksetzen AS
 SELECT g.name as gruppe, listagg(
     s.name || (CASE WHEN s.id = g.ersteller_id THEN '*' ELSE '' END),
@@ -25,8 +27,6 @@ INNER JOIN Gruppe g ON g.id = gs.gruppe_id
 INNER JOIN Student s ON s.id = gs.student_id
 GROUP BY g.id, g.name
 ORDER BY g.id;
-
--- region Test-Daten einfügen
 
 INSERT INTO Fakultaet (ID, NAME, STANDORT)
 VALUES (1, 'Informatik', 'Gummersbach');
@@ -81,7 +81,11 @@ CALL AccountZuruecksetzen(1 /* Frank */);
 */
 SELECT * FROM view_test_AccountZuruecksetzen;
 
+-- region [teardown]
+
 ROLLBACK;
 DROP VIEW view_test_AccountZuruecksetzen;
+
+-- endregion
 
 -- endregion

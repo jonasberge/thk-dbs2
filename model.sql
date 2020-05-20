@@ -261,6 +261,7 @@ BEGIN
     FROM Gruppe g
     WHERE g.id = :new.gruppe_id;
 
+    -- FIXME: Mutating-Table-Problem
     SELECT COUNT(*) INTO anzahl_mitglieder
     FROM Gruppe_Student
     WHERE gruppe_id = :new.gruppe_id;
@@ -301,6 +302,7 @@ DECLARE
 BEGIN
     SELECT 5 INTO v_limit FROM dual;
 
+    -- FIXME: Mutating-Table-Problem
     SELECT COUNT(gruppe_id)
     INTO v_anzahl
     FROM GruppenDienstLink

@@ -234,6 +234,9 @@ CREATE TABLE GruppenEinladung (
 
     Gruppendienstlink-Trigger
     -20011, Überschreitung der maximalen Anzahl an Dienstlinks.
+
+    AccountZuruecksetzen-Funktion
+    -20021, Student mit der ID ? existiert nicht.
 */
 
 -- endregion
@@ -364,7 +367,17 @@ IS
         SELECT id
         FROM Gruppe g
         WHERE g.ersteller_id = student_id;
+    student_existiert INTEGER;
 BEGIN
+    SELECT COUNT(1) INTO student_existiert FROM dual;
+
+    IF student_existiert = 0 THEN
+        RAISE_APPLICATION_ERROR(
+            -20021,
+            'Student mit der ID ' || student_id || ' existiert nicht.'
+        );
+    END IF;
+
     -- Lösche Gruppenmitgliedschaften des Nutzers.
     DELETE FROM Gruppe_Student gs
     WHERE gs.student_id = AccountZuruecksetzen.student_id;

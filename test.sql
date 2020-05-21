@@ -12,8 +12,6 @@ DROP VIEW view_test_AccountZuruecksetzen;
 
 -- endregion
 
--- region [Test] Account zurücksetzen
-
 -- region [setup]
 
 CREATE VIEW view_test_AccountZuruecksetzen AS
@@ -43,6 +41,53 @@ INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
 SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual UNION
 SELECT 2, 'Peter', 'peter@th-koeln.de', 'h', 'Ich bin Technologie-begeistert.',  NULL, 1, 1 FROM dual UNION
 SELECT 3, 'Hans',   'hans@th-koeln.de', 'h', 'Tortillas sind meine Spezialität', NULL, 1, 1 FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME)
+SELECT 1, 1, 1 /* Frank */, 'Mathe-Boyz'    FROM dual UNION
+SELECT 2, 1, 1 /* Frank */, 'Mathe-Boyz #2' FROM dual UNION
+SELECT 3, 1, 2 /* Peter */, 'Math Rivals'   FROM dual;
+
+-- endregion
+
+-- region [Test] Gruppe_Beitritt
+UPDATE Gruppe SET betretbar = '1' WHERE id = 1;
+
+-- Betritt bei verschiedenen Gruppen nicht möglich
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+SELECT 1, 1, SYSDATE FROM dual UNION
+SELECT 2, 2, SYSDATE FROM dual UNION
+SELECT 3, 3, SYSDATE FROM dual;
+
+-- Beitritt nur bei bestätigter Anfrage möglich
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+SELECT 2, 1, SYSDATE FROM dual;
+
+INSERT INTO GruppenAnfrage (GRUPPE_ID, STUDENT_ID, BESTAETIGT, DATUM)
+SELECT 2, 1, '1', SYSDATE FROM dual;
+
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+SELECT 2, 1, SYSDATE FROM dual;
+
+-- Beitritt nur vor Deadline möglich
+UPDATE Gruppe SET deadline = SYSDATE - 1 WHERE id = 2;
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+SELECT 2, 2, SYSDATE FROM dual;
+
+-- Insert nur möglich wenn Limit an Mitgliedern nicht überschritten wird
+UPDATE Gruppe SET betretbar = '1' WHERE id = 3;
+UPDATE Gruppe SET limit = 2 WHERE id = 3;
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+SELECT 3, 1, SYSDATE FROM dual UNION
+SELECT 3, 2, SYSDATE FROM dual UNION
+SELECT 3, 3, SYSDATE FROM dual;
+-- endregion
+
+
+-- region [Test] Account zurücksetzen
+
+-- region [Setup]
+DELETE FROM Gruppe_Student;
+DELETE FROM Gruppe;
 
 INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME)
 SELECT 1, 1, 1 /* Frank */, 'Mathe-Boyz'    FROM dual UNION

@@ -231,6 +231,9 @@ CREATE TABLE GruppenEinladung (
     -20001, Gruppe bereits vollständig
     -20002, Beitritt nicht mehr möglich, Deadline überschritten.
     -20003, Beitritt nur bei bestätigter Anfrage möglich.
+    -20004, Mit Insert Limit and Gruppenmitgliedern überschritten
+    -20009, Gruppendaten konnten nicht abgerufen werden.
+
 
     Gruppendienstlink-Trigger
     -20011, Überschreitung der maximalen Anzahl an Dienstlinks.
@@ -243,78 +246,74 @@ CREATE TABLE GruppenEinladung (
 
 -- region TRIGGER - Trigger erstellen
 
-CREATE OR REPLACE TRIGGER trigger_Gruppe_beitreten
-    BEFORE INSERT ON Gruppe_Student
-FOR EACH ROW
-DECLARE
-    g_limit        INTEGER;
-    g_betretbar    CHAR;
-    g_deadline     DATE;
+CREATE OR REPLACE TRIGGER trigger_GruppeBeitreten
+FOR INSERT ON Gruppe_Student
+COMPOUND TRIGGER
+    g_id                Gruppe_Student.gruppe_id % TYPE;
+    g_limit             Gruppe.limit % TYPE;
 
-    anzahl_mitglieder   INTEGER DEFAULT 0;
-    anfrage_bestaetigt  CHAR DEFAULT '0';
-BEGIN
-    -- Select, If, Delete, Fehlermeldung, Output (5 Anweisungen)
+    BEFORE EACH ROW IS
+        g_betretbar         Gruppe.betretbar % TYPE;
+        g_deadline          Gruppe.deadline % TYPE;
+        anfrage_bestaetigt  INTEGER DEFAULT 0;
 
-    SELECT limit, betretbar, deadline
-    INTO g_limit, g_betretbar, g_deadline
-    FROM Gruppe g
-    WHERE g.id = :new.gruppe_id;
+        CURSOR cursor_Gruppe_Attribute IS
+            SELECT limit, betretbar, deadline
+            FROM Gruppe g
+            WHERE g.id = :new.gruppe_id;
+    BEGIN
+        IF g_id IS NULL THEN
+            g_id := :new.gruppe_id;
+        ELSIF g_id <> :new.gruppe_id THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Verschiedene Gruppe_Ids in einem Insert nicht erlaubt.');
+        END IF;
 
-    -- FIXME: Mutating-Table-Problem
-    SELECT COUNT(*) INTO anzahl_mitglieder
-    FROM Gruppe_Student
-    WHERE gruppe_id = :new.gruppe_id;
+        OPEN cursor_Gruppe_Attribute;
+        FETCH cursor_Gruppe_Attribute INTO g_limit, g_betretbar, g_deadline;
+        IF cursor_Gruppe_Attribute % NOTFOUND THEN
+            RAISE_APPLICATION_ERROR(-20009, 'Gruppendaten konnten nicht abgerufen werden.');
+        END IF;
+        CLOSE cursor_Gruppe_Attribute;
 
-    IF anzahl_mitglieder >= g_limit THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Gruppe bereits vollständig.');
-    END IF;
+        IF g_deadline IS NOT NULL AND g_deadline < SYSDATE THEN
+            RAISE_APPLICATION_ERROR(-20002, 'Beitritt nicht mehr möglich, Deadline überschritten.');
+        END IF;
 
-    IF g_deadline < SYSDATE THEN
-        RAISE_APPLICATION_ERROR(-20002, 'Beitritt nicht mehr möglich, Deadline überschritten.');
-    END IF;
+        IF g_betretbar = '0' THEN
+            SELECT COUNT(*) INTO anfrage_bestaetigt
+            FROM GruppenAnfrage
+            WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id AND bestaetigt = '1';
 
-    IF g_betretbar = '0' THEN
-        SELECT bestaetigt INTO anfrage_bestaetigt
-        FROM GruppenAnfrage
+            IF anfrage_bestaetigt <> 1 THEN
+                RAISE_APPLICATION_ERROR(-20003, 'Beitritt nur bei bestätigter Anfrage möglich.');
+            END IF;
+        END IF;
+
+        -- Ggf. Vorhandende Beitrittsanfrage löschen
+        DELETE FROM GruppenAnfrage
         WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id;
 
-        IF SQL%ROWCOUNT = 0 OR anfrage_bestaetigt = '0' THEN
-            RAISE_APPLICATION_ERROR(-20003, 'Beitritt nur bei bestätigter Anfrage möglich.');
+        IF SQL%ROWCOUNT > 0 THEN
+            DBMS_OUTPUT.PUT_LINE('Vorhandende Beitrittsanfrage gelöscht');
         END IF;
-    END IF;
 
-    -- Ggf. Vorhandende Beitrittsanfrage löschen
-    DELETE FROM GruppenAnfrage WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id;
+        GruppenBeitragVerfassen(StudentenName(:new.student_id)
+            || ' ist der Gruppe beigetreten.', :new.gruppe_id);
 
-    IF SQL%ROWCOUNT > 0 THEN
-        DBMS_OUTPUT.PUT_LINE('Vorhandende Beitrittsanfrage gelöscht');
-    END IF;
-END;
-/
+    END BEFORE EACH ROW;
 
-CREATE OR REPLACE TRIGGER trigger_GruppenDienstLink_limitiert
-    BEFORE INSERT
-    ON GruppenDienstLink
-DECLARE
-    v_limit INTEGER;
-    v_anzahl INTEGER;
-BEGIN
-    SELECT 5 INTO v_limit FROM dual;
+    AFTER STATEMENT IS
+        anzahl_mitglieder   INTEGER DEFAULT 0;
+    BEGIN
+        SELECT COUNT(gs.student_id) INTO anzahl_mitglieder
+        FROM Gruppe_Student gs
+        WHERE gs.gruppe_id = g_id;
 
-    -- FIXME: Mutating-Table-Problem
-    SELECT COUNT(gruppe_id)
-    INTO v_anzahl
-    FROM GruppenDienstLink
-    GROUP BY gruppe_id;
-
-    IF (v_anzahl > v_limit) THEN
-        RAISE_APPLICATION_ERROR(
-            -20011,
-            'Eine Gruppe kann nicht mehr als '
-                    || v_limit || ' Dienstlinks haben.'
-        );
-    END IF;
+        IF anzahl_mitglieder > g_limit THEN
+            RAISE_APPLICATION_ERROR(-20004, 'Insert überschreitet mit ' || anzahl_mitglieder
+                                                || ' das Limit von ' || g_limit || ' Mitgliedern');
+        END IF;
+    END AFTER STATEMENT;
 END;
 /
 

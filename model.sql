@@ -479,6 +479,77 @@ BEGIN
     WHERE s.id = student_id;
 END;
 
+/* FUNCTION ÜR LETZER BEITRAG EINER GRUPPE */
+
+create or replace FUNCTION lastComment(v_gruppe_id gruppe.id%TYPE) RETURN Varchar2 is
+
+type r_type is record (v_ref_name gruppe.name%TYPE,
+                         v_ref_comment gruppenbeitrag.nachricht%TYPE,
+                         v_ref_date gruppenbeitrag.datum%TYPE);
+type comment_list is table of r_type index by PLS_INTEGER;
+r_comment comment_list;
+v_start r_type;
+v_result VARCHAR2(250);
+nr PLS_INTEGER;
+type ref_comment is ref cursor return r_type;
+rc_temps ref_comment;
+begin    
+        --save nummber of comment in variable nr
+         SELECT COUNT(gruppe_id) into nr
+         FROM gruppenBeitrag where gruppe_id = v_gruppe_id;
+         ---if number of gruppe >0 then open the referance cursor and start looping
+        if nr >0 then
+            open rc_temps for  SELECT e.name, b.Nachricht, b.datum 
+            FROM gruppe e INNER JOIN gruppenBeitrag b ON e.id = b.gruppe_id  where e.id = v_gruppe_id;
+                    for j in 1..nr loop 
+						fetch rc_temps into r_comment(j);
+						exit when rc_temps%notfound;
+                    end loop;
+            close rc_temps;  
+            v_start :=r_comment(1);
+            --save latest comment date in varible v_start and output the comment and grupp name as result
+                for i in 1..nr loop 
+                    if(v_start.v_ref_date <= r_comment(i).v_ref_date) then
+                    v_start :=r_comment(i);   
+                    v_result := 'letzer Beitrag von deiner Gruppe '|| v_start.v_ref_name || ' '|| 'ist :'||v_start.v_ref_comment;
+                    end if;  
+                end loop;
+        else
+            raise_application_error(-20243,'es gibt keine Beiträge');
+        end if;    
+    return v_result;
+end lastcomment;
+
+/* VIEW FÜR INSTEAD OF TRIGGER */
+CREATE or replace VIEW studentNachricht AS 
+SELECT gb.id, gb.nachricht, gb.gruppe_id,gb.student_id, s.name, st.abschluss
+from gruppenBeitrag gb , student s,  studiengang st
+where gb.student_id = s.id
+AND UPPER(st.name) LIKE '%INF%';
+
+/*INSTEAD OF VIEW TRIGGER*/
+create or replace TRIGGER COMMENT_DETAILS_VW_DML
+  INSTEAD OF UPDATE or DELETE ON studentNachricht
+  FOR EACH ROW
+  DECLARE
+    V_student gruppenbeitrag.student_id%TYPE;
+    V_grp gruppenbeitrag.gruppe_id%TYPE;
+    v_count PLS_INTEGER;
+BEGIN
+    IF UPDATING('nachricht') THEN  
+                 UPDATE gruppenbeitrag SET nachricht = :NEW.nachricht
+                 WHERE (id) = (:OLD.id) and student_id= :OLD.student_id;   
+    ELSIF DELETING THEN
+            DELETE FROM gruppenbeitrag WHERE (id) = (:OLD.id)and student_id= :OLD.student_id;            
+        ELSE
+            RAISE_APPLICATION_ERROR(-20007,'You cannot update or modify the view COMMENT_DETAILS_VW_DML !.');
+        END IF;
+END;
+
+
+
+
+
 -- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
 -- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
 -- Nützlich für Client-seitiges welches nur für verifizierte Nutzer möglich ist.

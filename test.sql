@@ -1,3 +1,6 @@
+
+/*****  TESTFALL 1 ***/
+
 -- region DELETE
 
 DELETE FROM Gruppe_Student;
@@ -90,3 +93,196 @@ DROP VIEW view_test_AccountZuruecksetzen;
 -- endregion
 
 -- endregion
+
+/*****  TESTFALL 2***/
+
+/* fuction letzer Beitrag  von einer gruppe anhand von der gruppe_id mit zusätzlichen texten ausgeben----- */
+
+delete fakultaet;
+delete studiengang;
+delete modul;
+delete student;
+delete gruppe;
+delete gruppenBeitrag;
+DROP VIEW grupp_Comment;
+
+
+--------------------Erstellung Fakultaet-----------------------------
+INSERT INTO fakultaet values(sequence_Fakultaet.NEXTVAL,'Fakultaet InfoING', 'Gummersbach');
+INSERT INTO fakultaet values(sequence_Fakultaet.NEXTVAL,'Fakultaet fuer Fahrzeugsysteme und Produktion', 'Koeln');
+INSERT INTO fakultaet values(sequence_Fakultaet.NEXTVAL,' Fakultaet fuer Architektur', 'Koeln');
+/*Erstellung Studiangang */
+
+INSERT INTO studiengang values(sequence_Studiengang.NEXTVAL, 'MASCHINENBAU',1, 'BSC.INF');
+INSERT INTO studiengang values(sequence_Studiengang.NEXTVAL,'INFORMATIK', 2, 'BSC.ING');
+INSERT INTO studiengang values(sequence_Studiengang.NEXTVAL,'ELEKTROTECHNIK', 3, 'BSC.ING');
+
+/*Erstellung Modulen */
+INSERT INTO modul values(sequence_Modul.NEXTVAL,  'INFORMATIK','Koenen', 1);
+INSERT INTO modul values(sequence_Modul.NEXTVAL, 'INFORMATIK','EISENMANN',  2);
+INSERT INTO modul values(sequence_Modul.NEXTVAL, 'Werkstoffe','Mustermann',  3);
+
+/* Erstellung Student */
+
+ INSERT INTO student values(sequence_Student.NEXTVAL,'Tobias','help@smail.th-koeln.de',1,2,'xxxa','Lernstube',NULL,SYSDATE);
+  INSERT INTO student values(sequence_Student.NEXTVAL,'Hermann','test@smail.th-koeln.de',2,4,'ppp','study',NULL,TO_DATE('17/12/2008', 'DD/MM/YYYY'));
+  INSERT INTO student values(sequence_Student.NEXTVAL,'Luc','luc@smail.th-koeln.de',3,2,'lll','etude',NULL,TO_DATE('09/12/2008', 'DD/MM/YYYY'));
+  INSERT INTO student values(sequence_Student.NEXTVAL,'Frida','bol@smail.th-koeln.de',2,4,'ppp','pass',NULL,TO_DATE('17/12/2000', 'DD/MM/YYYY'));
+
+/*Erstellung Gruppe */
+INSERT INTO gruppe values(sequence_Gruppe.NEXTVAL,1,3,'TEST',5,'1','1',SYSDATE,'Gummersbach');
+INSERT INTO gruppe values(sequence_Gruppe.NEXTVAL,2,2,'zudy',3,'1','1',TO_DATE('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
+INSERT INTO gruppe values(sequence_Gruppe.NEXTVAL,3,1,'PP',3,'1','0',TO_DATE('01/07/2020', 'DD/MM/YYYY'),'Koeln');
+INSERT INTO gruppe values(sequence_Gruppe.NEXTVAL,3,1,'ALGO',2,'0','1',TO_DATE('01/06/2020', 'DD/MM/YYYY'),'Koeln');
+
+/* Erstellung Gruppenbeitrag */
+
+INSERT INTO gruppenBeitrag values(sequence_GruppenBeitrag.NEXTVAL,1,2,TO_DATE('17/12/2015', 'DD/MM/YYYY'),'hello world');
+INSERT INTO gruppenBeitrag values(sequence_GruppenBeitrag.NEXTVAL,2,1,TO_DATE('17/06/2020', 'DD/MM/YYYY'),'was lauft..');
+INSERT INTO gruppenBeitrag values(sequence_GruppenBeitrag.NEXTVAL,1,2,TO_DATE('17/07/2020', 'DD/MM/YYYY'),'wann ist naechste ..');
+INSERT INTO gruppenBeitrag values(sequence_GruppenBeitrag.NEXTVAL,3,2,TO_DATE('01/02/2019', 'DD/MM/YYYY'),'Termin wird verschoben ..');
+INSERT INTO gruppenBeitrag values(sequence_GruppenBeitrag.NEXTVAL,3,2,TO_DATE('17/05/2020', 'DD/MM/YYYY'),'ich bin heute nicht dabei..');
+INSERT INTO gruppenBeitrag values(sequence_GruppenBeitrag.NEXTVAL,3,2,TO_DATE('17/07/2020', 'DD/MM/YYYY'),'wann ist naechste ..');
+
+------CREATE view vomment zum Beispiel for gruppe with id = 3--------------------------------
+CREATE OR REPLACE VIEW  grupp_Comment AS
+SELECT FROM gruppenBeitrag gb where gb.gruppe_id = 3;
+/* Ergebnisse vorher besteht nur als Tabelle
+ID   gruppe Id		student Id		DATE		COMMENT
+24		3			2				01.02.19	Termin wird verschoben !
+23		3			2				17.05.20	ich bin heute nicht dabei !
+21		3			2				17.07.20	wann ist naechste ..
+..		..			.				..			...	
+..		..			.				..			..	
+  */
+/*----  mit der function lastcomment(gruppe ID) lässt sich das letze beitrag von einer gruppe als einzige zeile mit gruppe name ausgeben-----
+
+select lastcomment(3) from dual;
+
+ERgbnis Nacher : letzer Beitrag von deiner Gruppe PP ist :wann ist naechste ..
+
+*/
+ROLLBACK;
+
+
+/*****  TESTFALL 3 ***/
+
+/* Prozedure INTEAD OF VIEW testen */
+
+--- Complexe View erstellen : alle beitragen von den Studenten mit Studiengang INFORMATIK
+CREATE or replace VIEW studentNachricht AS 
+SELECT gb.id, gb.nachricht, gb.gruppe_id,gb.student_id, s.name, st.abschluss
+from gruppenBeitrag gb , student s,  studiengang st
+where gb.student_id = s.id
+AND UPPER(st.name) LIKE '%INF%';
+
+SELECT * FROM studentNachricht;
+/*
+ ID         	Nachricht					Gruppe_id		student_id			Name			ABSCHLUSS
+(Beitrag_id)
+2				hum mich					2					1				Tobias			BSC.ING
+21				wann ist naechste ..		3					2				Hermann			BSC.ING
+23				ich bin heute nicht dabei !	3					2				Hermann			BSC.ING
+24				Termin wird verschoben !	3					2				Hermann			BSC.ING
+1				hello world					1					2				Hermann			BSC.ING
+3				wann ist naechste ..		1					2				Hermann			BSC.ING
+
+*/
+
+---Test functioniert nicht wenn man Zb anhand der view eine bestimtes beitrag von einem studenten ändern möchte
+update studentNachricht set nachricht = 'findet nicht mehr statt' where id =24 ;
+
+/* Fehlermeldung
+Error starting at line : 17 in command -
+update studentNachricht set nachricht = 'termin wird  verschoben' where id =24 
+Error at Command Line : 17 Column : 29
+Error report -
+SQL Error: ORA-01779: cannot modify a column which maps to a non key-preserved table
+01779. 00000 -  "cannot modify a column which maps to a non key-preserved table"
+*Cause:    An attempt was made to insert or update columns of a join view which
+           map to a non-key-preserved table.
+*Action:   Modify the underlying base tables directly.
+
+*/
+
+--- ein INSTEAD OF TRIGGER wird definiert und der test wiederholt----
+
+create or replace TRIGGER COMMENT_DETAILS_VW_DML
+  INSTEAD OF UPDATE or DELETE ON studentNachricht
+  FOR EACH ROW
+  DECLARE
+    V_student gruppenbeitrag.student_id%TYPE;
+    V_grp gruppenbeitrag.gruppe_id%TYPE;
+    v_count PLS_INTEGER;
+BEGIN
+    IF UPDATING('nachricht') THEN  
+                 UPDATE gruppenbeitrag SET nachricht = :NEW.nachricht
+                 WHERE (id) = (:OLD.id) and student_id= :OLD.student_id;   
+    ELSIF DELETING THEN
+            DELETE FROM gruppenbeitrag WHERE (id) = (:OLD.id)and student_id= :OLD.student_id;            
+        ELSE
+            RAISE_APPLICATION_ERROR(-20007,'You cannot update or modify the view COMMENT_DETAILS_VW_DML !.');
+        END IF;
+END;
+
+
+/* der test wird wiederholt und klappt jetz */
+
+
+
+/* ergebnis Voher 
+
+ ID         	Nachricht					Gruppe_id		student_id			Name			ABSCHLUSS
+(Beitrag_id)
+2				hum mich					2					1				Tobias			BSC.ING
+21				wann ist naechste ..		3					2				Hermann			BSC.ING
+23				ich bin heute nicht dabei !	3					2				Hermann			BSC.ING
+24				Termin wird verschoben !	3					2				Hermann			BSC.ING
+1				hello world					1					2				Hermann			BSC.ING
+3				wann ist naechste ..		1					2				Hermann			BSC.ING
+
+*/
+
+update studentNachricht set nachricht = 'findet nicht mehr statt' where id =24 ;
+
+/* Ergebnis naher in der view (Nachricht mit ID =24 wird angepasst)
+
+
+ ID         	Nachricht					Gruppe_id		student_id			Name			ABSCHLUSS
+(Beitrag_id)
+2				hum mich					2					1				Tobias			BSC.ING
+21				wann ist naechste ..		3					2				Hermann			BSC.ING
+23				ich bin heute nicht dabei !	3					2				Hermann			BSC.ING
+24				findet nicht mehr statt !	3					2				Hermann			BSC.ING ---Nachricht wurde angepasst
+1				hello world					1					2				Hermann			BSC.ING
+3				wann ist naechste ..		1					2				Hermann			BSC.ING
+
+*/
+
+/* Ergebnis naher in der Tabelle gruppen beitrag
+
+ ID       Gruppe_id		student_id			Datum			Nachricht							
+21				3			2				17.07.20		wann ist naechste ..
+23				3			2				17.05.20		ich bin heute nicht dabei !
+24				3			2				01.02.19		findet nicht mehr statt -------Nachricht wurde in der Tabelle auch angepasst
+1				1			2				17.12.15		hello world
+2				2			1				17.06.20		hum mich
+3				1			2				17.07.20		wann ist naechste ..
+
+
+
+*/
+ROLLBACK;
+
+
+
+
+
+
+
+
+
+
+
+
+

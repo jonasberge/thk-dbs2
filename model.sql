@@ -4,7 +4,7 @@ DROP TABLE GruppenEinladung;
 DROP TABLE GruppenAnfrage;
 DROP TABLE Gruppe_Student;
 DROP TABLE GruppenBeitrag;
-DROP TABLE GruppenDienstLink;
+DROP TABLE GruppenDienstlink;
 DROP TABLE Gruppe;
 DROP TABLE StudentWiederherstellung;
 DROP TABLE StudentVerifizierung;
@@ -150,7 +150,7 @@ ALTER TABLE Gruppe
     ADD CONSTRAINT check_Gruppe_betretbar
         CHECK (betretbar in ('1', '0'));
 
-CREATE TABLE GruppenDienstLink (
+CREATE TABLE GruppenDienstlink (
     gruppe_id INTEGER     NOT NULL,
     url       HTTPURITYPE NOT NULL,
     FOREIGN KEY (gruppe_id)

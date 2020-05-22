@@ -45,10 +45,10 @@ SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',             
 SELECT 2, 'Peter', 'peter@th-koeln.de', 'h', 'Ich bin Technologie-begeistert.',  NULL, 1, 1 FROM dual UNION
 SELECT 3, 'Hans',   'hans@th-koeln.de', 'h', 'Tortillas sind meine Spezialität', NULL, 1, 1 FROM dual;
 
-INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME)
-SELECT 1, 1, 1 /* Frank */, 'Mathe-Boyz'    FROM dual UNION
-SELECT 2, 1, 1 /* Frank */, 'Mathe-Boyz #2' FROM dual UNION
-SELECT 3, 1, 2 /* Peter */, 'Math Rivals'   FROM dual;
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
+SELECT 1, 1, 1 /* Frank */, 'Mathe-Boyz',    '1' FROM dual UNION
+SELECT 2, 1, 1 /* Frank */, 'Mathe-Boyz #2', '1' FROM dual UNION
+SELECT 3, 1, 2 /* Peter */, 'Math Rivals',   '1' FROM dual;
 
 -- TODO: Gruppenerstellung in Prozedur auslagern.
 -- Die Ersteller einer Gruppe werden auch in Gruppe_Student eingefügt.

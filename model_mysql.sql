@@ -1,70 +1,40 @@
-/* / - Zusammenfassung - /* /
+-- region DROP TABLE
 
-Eintrage mit [x] sind bereits implementiert.
-Solche mit einem leeren Kästchen [ ] müssen noch geschrieben werden.
-Falls hinter einem Eintrag `Xa` steht bedeutet das, dass die
-    Implementierung des Elements `X` `a`nweisungen beansprucht hat.
+DROP TABLE IF EXISTS GruppenEinladung;
+DROP TABLE IF EXISTS GruppenAnfrage;
+DROP TABLE IF EXISTS Gruppe_Student;
+DROP TABLE IF EXISTS GruppenBeitrag;
+DROP TABLE IF EXISTS GruppenDienstLink;
+DROP TABLE IF EXISTS  Gruppe;
+DROP TABLE IF EXISTS StudentWiederherstellung;
+DROP TABLE IF EXISTS StudentVerifizierung;
+DROP TABLE IF EXISTS EindeutigeKennung;
+DROP TABLE IF EXISTS Student;
+DROP TABLE IF EXISTS Studiengang_Modul;
+DROP TABLE IF EXISTS Modul;
+DROP TABLE IF EXISTS Studiengang;
+DROP TABLE IF EXISTS Fakultaet;
 
-
-[Trigger]
-    Student:
-        -
-
-trigger_GruppenDienstLink_limitiert
-trigger_GruppenBeitrag_datum
-
-    Gruppe:
-        [x] `trigger_Gruppe_deadline` - 1a
-            Spalte `deadline` darf beim Einfügen das aktuelle
-            Datum nicht überschreiten. (2 Anweisungen)
-
-    GruppenDienstLink:
-        [x] `trigger_GruppenDienstLink_limitiert` - 3a
-            Anzahl der Dienstlinks für eine Gruppe
-            darf nicht das Limit überschreiten.
+-- endregion
 
 
-[Scheduler]
-    Student:
-        [ ] Spalte `semester` erhöhen sobald das nächste Semester beginnt.
-
-
-/*DROP INDEX AND SEQUENCES*/
-
-DROP INDEX  index_EindeutigeKennung_kennung ON EindeutigeKennung;
-
-
-/* DROP TABLE */
-DROP TABLE IF EXISTS GruppenEinladung CASCADE;
-DROP TABLE IF EXISTS GruppenAnfrage CASCADE;
-DROP TABLE IF EXISTS Gruppe_Student CASCADE;
-DROP TABLE IF EXISTS GruppenBeitrag CASCADE;
-DROP TABLE IF EXISTS GruppenDienstLink CASCADE;
-DROP TABLE IF EXISTS Gruppe CASCADE;
-DROP TABLE IF EXISTS StudentWiederherstellung CASCADE;
-DROP TABLE IF EXISTS StudentVerifizierung CASCADE;
-DROP TABLE IF EXISTS EindeutigeKennung CASCADE;
--- DROP TABLE Student_Modul;
-DROP TABLE IF EXISTS Student CASCADE;
-DROP TABLE IF EXISTS Studiengang_Modul CASCADE;
-DROP TABLE IF EXISTS Modul CASCADE;
-DROP TABLE IF EXISTS Studiengang CASCADE;
-DROP TABLE IF EXISTS Fakultaet CASCADE;
+-- region TABLE
 
 CREATE TABLE Fakultaet (
-    id       INTEGER PRIMARY KEY,
+    id       INTEGER PRIMARY KEY  AUTO_INCREMENT,
     name     VARCHAR(64) NOT NULL,
     standort VARCHAR(64) NOT NULL
 );
 
 CREATE TABLE Studiengang (
-    id           INTEGER PRIMARY KEY,
+    id           INTEGER PRIMARY KEY  AUTO_INCREMENT,
     name         VARCHAR(64) NOT NULL,
-   fakultaet_id INTEGER      NOT NULL,
-   abschluss    VARCHAR(16)  NOT NULL,
-   FOREIGN KEY (fakultaet_id)
-    REFERENCES Fakultaet (id)
+    fakultaet_id INTEGER      NOT NULL,
+    abschluss    VARCHAR(16)  NOT NULL,
+    FOREIGN KEY (fakultaet_id)
+        REFERENCES Fakultaet (id)
 );
+
 ALTER TABLE Studiengang
     ADD CONSTRAINT check_Studiengang_abschluss
         CHECK (UPPER(abschluss) in (
@@ -72,16 +42,16 @@ ALTER TABLE Studiengang
         );
 
 CREATE TABLE Modul (
-    id             INTEGER PRIMARY KEY,
+    id             INTEGER PRIMARY KEY AUTO_INCREMENT,
     name           VARCHAR(64) NOT NULL,
     dozent         VARCHAR(64)  NOT NULL,
     semester       INTEGER
 );
+
 ALTER TABLE Modul
     ADD CONSTRAINT check_Modul_semester
         CHECK (semester > 0);
 
--- Zugehörigkeit zwischen Studiengang und Modul.
 CREATE TABLE Studiengang_Modul (
     studiengang_id INTEGER NOT NULL,
     modul_id INTEGER NOT NULL,
@@ -91,8 +61,9 @@ CREATE TABLE Studiengang_Modul (
     FOREIGN KEY (modul_id)
         REFERENCES Modul (id)
 );
+
 CREATE TABLE Student (
-    id                  INTEGER PRIMARY KEY,
+    id                  INTEGER PRIMARY KEY AUTO_INCREMENT,
     name                VARCHAR(64)      NOT NULL,
     smail_adresse       VARCHAR(64)      NOT NULL,
     studiengang_id      INTEGER           NOT NULL,
@@ -113,7 +84,7 @@ ALTER TABLE Student
 -- TODO [Scheduler] Nach Ablauf des Semesters `semester` des Studenten erhöhen.
 
 CREATE TABLE EindeutigeKennung (
-    id      INTEGER PRIMARY KEY,
+    id      INTEGER PRIMARY KEY AUTO_INCREMENT,
     kennung CHAR(32) NOT NULL -- UUID
 );
 
@@ -141,7 +112,7 @@ CREATE TABLE StudentWiederherstellung (
 );
 
 CREATE TABLE Gruppe (
-    id           INTEGER PRIMARY KEY,
+    id           INTEGER PRIMARY KEY AUTO_INCREMENT,
     modul_id     INTEGER             NOT NULL,
     ersteller_id INTEGER             NOT NULL,
     name         VARCHAR(64)        NOT NULL,
@@ -169,8 +140,15 @@ ALTER TABLE Gruppe
     ADD CONSTRAINT check_Gruppe_betretbar
         CHECK (betretbar in ('1', '0'));
 
+CREATE TABLE GruppenDienstLink (
+    gruppe_id INTEGER     NOT NULL,
+    url        varchar(250) NOT NULL,
+    FOREIGN KEY (gruppe_id)
+        REFERENCES Gruppe (id)
+);
+
 CREATE TABLE GruppenBeitrag (
-    id         INTEGER PRIMARY KEY,
+    id         INTEGER PRIMARY KEY AUTO_INCREMENT,
     gruppe_id  INTEGER        NOT NULL,
     student_id INTEGER        NOT NULL,
     datum      DATE           NOT NULL,
@@ -187,7 +165,6 @@ CREATE INDEX index_GruppenBeitrag_gruppe_datum
 ALTER TABLE GruppenBeitrag
     ADD CONSTRAINT check_GruppenBeitrag_nachricht
         CHECK (LENGTH(nachricht) > 0);
-
 
 -- Studenten die in einer Gruppe sind.
 CREATE TABLE Gruppe_Student (
@@ -228,12 +205,66 @@ CREATE TABLE GruppenEinladung (
         REFERENCES Student (id)
 );
 
-CREATE TABLE GruppenDienstLink (
-    gruppe_id INTEGER     NOT NULL,
-    url       varchar(250) NOT NULL,
-    FOREIGN KEY (gruppe_id)
-        REFERENCES Gruppe (id)
-);
+-- TODO [Tabelle] Treffzeiten nach Wochentag.
+
+-- endregion
+
+--region Tabellen mit Daten befuellen zum Testzwecken-------------
+--------------------Erstellung Fakultaet-----------------------------
+INSERT INTO fakultaet (name, standort) values('Fakultaet InfoING', 'Gummersbach');
+INSERT INTO fakultaet(name, standort) values('Fakultaet fuer Fahrzeugsysteme und Produktion', 'Koeln');
+INSERT INTO fakultaet (name, standort) values(' Fakultaet fuer Architektur', 'Koeln');
+/*Erstellung Studiangang */
+
+INSERT INTO studiengang values(1,'MASCHINENBAU',1, 'BSC.INF');
+INSERT INTO studiengang values(2,'INFORMATIK', 2, 'BSC.ING');
+INSERT INTO studiengang values(3'ELEKTROTECHNIK', 3, 'BSC.ING');
+
+/*Erstellung Modulen */
+INSERT INTO modul values(1,  'INFORMATIK','Koenen', 1);
+INSERT INTO modul values(2, 'INFORMATIK','EISENMANN',  2);
+INSERT INTO modul values(3, 'Werkstoffe','Mustermann',  3);
+
+/* Erstellung Student */
+
+ INSERT INTO student values(1,'Tobias','help@smail.th-koeln.de',1,2,'xxxa','Lernstube',NULL,SYSDATE);
+  INSERT INTO student values(2,'Hermann','test@smail.th-koeln.de',2,4,'ppp','study',NULL,DATE_FORMAT('17/12/2008', 'DD/MM/YYYY'));
+  INSERT INTO student values(3,'Luc','luc@smail.th-koeln.de',3,2,'lll','etude',NULL,DATE_FORMAT('09/12/2008', 'DD/MM/YYYY'));
+  INSERT INTO student values(4,'Frida','bol@smail.th-koeln.de',2,4,'ppp','pass',NULL,DATE_FORMAT('17/12/2000', 'DD/MM/YYYY'));
+
+/*Erstellung Gruppe */
+INSERT INTO gruppe values(1,1,3,'TEST',5,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
+INSERT INTO gruppe values(2,2,2,'zudy',3,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
+INSERT INTO gruppe values(3,3,1,'PP',3,'1','0',DATE_FORMAT('01/07/2020', 'DD/MM/YYYY'),'Koeln');
+INSERT INTO gruppe values(4,3,1,'ALGO',2,'0','1',DATE_FORMAT('01/06/2020', 'DD/MM/YYYY'),'Koeln');
+
+/* Erstellung Gruppenbeitrag */
+
+INSERT INTO gruppenBeitrag values(1,1,2,'2015-12-17','hello world');
+INSERT INTO gruppenBeitrag values(2,2,1,'2020-06-17','was lauft..');
+INSERT INTO gruppenBeitrag values(3,1,2,'2020-07-17' ,'wann ist naechste ..');
+INSERT INTO gruppenBeitrag values(4,3,2,'2019-02-01','Termin wird verschoben ..');
+INSERT INTO gruppenBeitrag values(5,3,2,'2020-05-17','ich bin heute nicht dabei..');
+INSERT INTO gruppenBeitrag values(6,3,2,'2020-07-17','wann ist naechste ..');
+
+
+
+/*Erstellung gruppeDiensLink */
+
+INSERT INTO GruppenDienstLink values('1',HTTPURITYPE('https://ggogleTrst'));
+INSERT INTO GruppenDienstLink values('2',HTTPURITYPE('https://google.de'));
+INSERT INTO GruppenDienstLink values('4',HTTPURITYPE('https://test.de'));
+
+
+/*Erstellung beitrittsAnfrage */
+
+INSERT INTO GruppenAnfrage values(1,2,SYSDATE,'hello, ich wuerde gerne..');
+INSERT INTO GruppenAnfrage values(3,1,TO_DATE('17/12/2015', 'DD/MM/YYYY'),'hello, ich wuerde gerne..');
+INSERT INTO GruppenAnfrage values(2,3,TO_DATE('10/12/2015', 'DD/MM/YYYY'),'hello, ich wuerde gerne..');
+COMMIT;
+
+
+-- region TRIGGER
 
 /* ein trigger für deadline um eine Gruppe beizutreten   */
 DROP TRIGGER IF EXISTS trigger_Gruppe_deadline;
@@ -260,14 +291,13 @@ FOR EACH ROW
 BEGIN 
 DECLARE v_limit INTEGER; 
 DECLARE v_anzahl INTEGER; 
-SELECT 5 INTO v_limit FROM dual; 
+SELECT 8 INTO v_limit FROM dual; 
 SELECT COUNT(gruppe_id) INTO v_anzahl FROM GruppenDienstLink GROUP BY gruppe_id; 
 IF (v_anzahl > v_limit) THEN 
 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Eine Gruppe kann nicht mehr als 5 Dienstlinks haben.';
  END IF; 
  END //
 DELIMITER ;
-
 
 DROP  FUNCTION IF EXISTS lastComment;
 
@@ -367,15 +397,15 @@ END;
 /
 /**/
 
-
-
--- TODO [Tabelle] Treffzeiten nach Wochentag.
-
 -- TODO [Trigger] Einfügen überlappender Treffzeiten zusammenführen.
 -- Falls ein einzufügender Zeitintervall mit einem anderen überlappt
 -- sollte der existierende geupdated werden anstatt einen Fehler zu werden.
 -- -> { von: MIN(:old.von, :new.von), bis: MAX(:old.bis, :new.bis) }
 
+-- endregion
+
+
+-- region PROCEDURE
 
 -- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
 -- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
@@ -413,9 +443,24 @@ END;
 
 -- TODO [Prozedur] Eine Beitrittsanfrage ablehnen.
 
+-- endregion
 
 
-/* -- Notizen
+-- region SEQUENCE
+
+CREATE SEQUENCE sequence_Fakultaet;
+CREATE SEQUENCE sequence_Studiengang;
+CREATE SEQUENCE sequence_Modul;
+CREATE SEQUENCE sequence_Student;
+CREATE SEQUENCE sequence_EindeutigeKennung;
+CREATE SEQUENCE sequence_Gruppe;
+CREATE SEQUENCE sequence_GruppenBeitrag;
+
+-- endregion
+
+
+-- region Notizen
+/*
 
 CREATE OR REPLACE TYPE DienstLink_t AS OBJECT (
     url HTTPURITYPE
@@ -434,3 +479,4 @@ VALUES (HTTPURITYPE('https://web.whatsapp.com/invite?id=123'));
 SELECT LOWER(SYS_GUID()) FROM dual; -- , * FROM DienstLink;
 
 */
+-- endregion

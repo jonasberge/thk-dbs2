@@ -2,6 +2,7 @@
 
 DELETE FROM Gruppe_Student;
 DELETE FROM GruppenBeitrag;
+DELETE FROM GruppenAnfrage;
 DELETE FROM Gruppe;
 DELETE FROM Student;
 DELETE FROM Modul;

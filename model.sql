@@ -249,24 +249,23 @@ CREATE TABLE GruppenEinladung (
 CREATE OR REPLACE TRIGGER trigger_GruppeBeitreten
 FOR INSERT ON Gruppe_Student
 COMPOUND TRIGGER
-    g_id                Gruppe_Student.gruppe_id % TYPE;
-    g_limit             Gruppe.limit % TYPE;
+    TYPE gruppe_t IS TABLE OF Gruppe_Student.gruppe_id % TYPE
+    INDEX BY PLS_INTEGER;
+
+    g_gruppen gruppe_t := gruppe_t();
 
     BEFORE EACH ROW IS
         g_betretbar         Gruppe.betretbar % TYPE;
         g_deadline          Gruppe.deadline % TYPE;
         anfrage_bestaetigt  INTEGER DEFAULT 0;
+        g_limit            Gruppe.limit % TYPE;
 
         CURSOR cursor_Gruppe_Attribute IS
             SELECT limit, betretbar, deadline
             FROM Gruppe g
             WHERE g.id = :new.gruppe_id;
     BEGIN
-        IF g_id IS NULL THEN
-            g_id := :new.gruppe_id;
-        ELSIF g_id <> :new.gruppe_id THEN
-            RAISE_APPLICATION_ERROR(-20001, 'Verschiedene Gruppe_Ids in einem Insert nicht erlaubt.');
-        END IF;
+        g_gruppen(g_gruppen.COUNT + 1) := :new.gruppe_id;
 
         OPEN cursor_Gruppe_Attribute;
         FETCH cursor_Gruppe_Attribute INTO g_limit, g_betretbar, g_deadline;
@@ -304,15 +303,23 @@ COMPOUND TRIGGER
 
     AFTER STATEMENT IS
         anzahl_mitglieder   INTEGER DEFAULT 0;
+        g_limit           Gruppe.limit % TYPE;
     BEGIN
-        SELECT COUNT(gs.student_id) INTO anzahl_mitglieder
-        FROM Gruppe_Student gs
-        WHERE gs.gruppe_id = g_id;
+        FOR i IN g_gruppen.FIRST .. g_gruppen.LAST
+        LOOP
+            SELECT COUNT(gs.student_id) INTO anzahl_mitglieder
+            FROM Gruppe_Student gs
+            WHERE gs.gruppe_id = g_gruppen(i);
 
-        IF anzahl_mitglieder > g_limit THEN
-            RAISE_APPLICATION_ERROR(-20004, 'Insert überschreitet mit ' || anzahl_mitglieder
-                                                || ' das Limit von ' || g_limit || ' Mitgliedern');
-        END IF;
+            SELECT limit INTO g_limit
+            FROM Gruppe g
+            WHERE g.id = g_gruppen(i);
+
+            IF anzahl_mitglieder > g_limit THEN
+                RAISE_APPLICATION_ERROR(-20004, 'Insert überschreitet mit ' || anzahl_mitglieder
+                                                    || ' das Limit von ' || g_limit || ' Mitgliedern');
+            END IF;
+        END LOOP;
     END AFTER STATEMENT;
 END;
 /

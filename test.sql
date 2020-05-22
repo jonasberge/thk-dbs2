@@ -120,12 +120,6 @@ UPDATE Gruppe SET betretbar = '1' WHERE id = 1;
 
 -- endregion
 
--- Betritt bei verschiedenen Gruppen nicht möglich
-INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
-SELECT 1, 1, SYSDATE FROM dual UNION
-SELECT 2, 2, SYSDATE FROM dual UNION
-SELECT 3, 3, SYSDATE FROM dual; -- funktionert nicht da versch. Gruppen
-
 -- Beitritt nur bei bestätigter Anfrage möglich
 INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
 SELECT 2, 1, SYSDATE FROM dual; -- funktionert nicht da bestätigte Anfrage fehlt

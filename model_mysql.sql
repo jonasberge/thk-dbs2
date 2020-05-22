@@ -384,6 +384,44 @@ END;
 //
 DELIMITER ;
 
+DROP PROCEDURE IF EXISTS AccountZuruecksetzen;
+
+DELIMITER //
+CREATE PROCEDURE AccountZuruecksetzen
+    (IN in_student_id INTEGER)
+BEGIN
+    DECLARE student_existiert INTEGER;
+
+    SELECT COUNT(1) INTO student_existiert FROM dual;
+
+    IF student_existiert = 0 THEN
+        set @message_text = concat('Student mit der ID ', in_student_id, ' existiert nicht.');
+        signal sqlstate '20021' set message_text = @message_text;
+    END IF;
+
+    -- Lösche Gruppenmitgliedschaften des Nutzers.
+    -- Löst den oben definierten Trigger aus.
+    DELETE FROM Gruppe_Student
+    WHERE student_id = in_student_id;
+
+    -- TODO: student_id in GruppenBeitrag zu ersteller_id umbennen.
+    UPDATE GruppenBeitrag gb
+    SET gb.student_id = NULL
+    WHERE gb.student_id = in_student_id;
+
+    UPDATE GruppenEinladung ge
+    SET ge.ersteller_id = NULL
+    WHERE ge.ersteller_id = in_student_id;
+
+    DELETE FROM GruppenAnfrage
+    WHERE student_id = in_student_id;
+
+    DELETE FROM Student
+    WHERE id = in_student_id;
+END;
+//
+DELIMITER ;
+
 -- endregion
 
 -- region Notizen

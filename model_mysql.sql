@@ -236,7 +236,11 @@ BEGIN
     FROM Gruppe_Student
     WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
 
-    IF anzahl_mitglieder < g_limit THEN
+    -- Bei MySQL kein Mutating Table Problem bei Select
+    -- aber Wert bleibt der bei jeder Zeile gleich (Zustand vor dem Insert)
+    -- bei mehrzeiligem insert funktioniert die If-Abfrage nur für erste Zeile
+
+    IF anzahl_mitglieder + 1 > g_limit THEN
         signal sqlstate '20001' set message_text = 'Gruppe bereits vollständig.';
     END IF;
 

@@ -347,7 +347,7 @@ COMPOUND TRIGGER
     BEGIN
         IF g_gruppen IS NOT EMPTY THEN
             -- Jede involvierte Gruppe muss nur einmal überprüft werden.
-            g_gruppen = SET(g_gruppen);
+            g_gruppen := SET(g_gruppen);
 
             FOR i IN g_gruppen.FIRST .. g_gruppen.LAST
             LOOP

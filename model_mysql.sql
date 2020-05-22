@@ -260,11 +260,6 @@ BEGIN
     -- Ggf. Vorhandende Beitrittsanfrage löschen
     DELETE FROM GruppenAnfrage
     WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
-
-    INSERT INTO messages(message) VALUES (anzahl_mitglieder);
-    INSERT INTO messages(message) VALUES (g_limit);
-    INSERT INTO messages(message) VALUES (g_deadline);
-    INSERT INTO messages(message) VALUES (g_betretbar);
 END //
 DELIMITER ; -- delimiter resetten
 

@@ -510,7 +510,8 @@ begin
             --save latest comment date in varible v_start and output the comment and grupp name as result
                 for i in 1..nr loop 
                     if(v_start.v_ref_date <= r_comment(i).v_ref_date) then
-                    v_start :=r_comment(i);   
+                    v_start :=r_comment(i);  
+                    dbms_output.put_line( 'Deine Gruppe ist sehr aktiv.' ); 
                     v_result := 'letzer Beitrag von deiner Gruppe '|| v_start.v_ref_name || ' '|| 'ist :'||v_start.v_ref_comment;
                     end if;  
                 end loop;

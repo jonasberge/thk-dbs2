@@ -368,6 +368,22 @@ END;
 //
 DELIMITER ;
 
+DROP PROCEDURE IF EXISTS GruppeLoeschen;
+
+DELIMITER //
+CREATE PROCEDURE GruppeLoeschen
+    (IN in_id INTEGER)
+BEGIN
+    DELETE FROM GruppenAnfrage WHERE gruppe_id = in_id;
+    DELETE FROM GruppenEinladung WHERE gruppe_id = in_id;
+    DELETE FROM GruppenDienstlink WHERE gruppe_id = in_id;
+    DELETE FROM GruppenBeitrag WHERE gruppe_id = in_id;
+    DELETE FROM Gruppe_Student WHERE gruppe_id = in_id;
+    DELETE FROM Gruppe WHERE id = in_id;
+END;
+//
+DELIMITER ;
+
 -- endregion
 
 -- region Notizen

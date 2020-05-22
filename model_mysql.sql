@@ -263,13 +263,110 @@ BEGIN
 END //
 DELIMITER ; -- delimiter resetten
 
+DROP TRIGGER IF EXISTS trigger_GruppeVerlassen;
+
+DELIMITER // -- delimiter setzen
+CREATE TRIGGER trigger_GruppeVerlassen
+AFTER DELETE ON Gruppe_Student
+FOR EACH ROW
+this_trigger: BEGIN
+    DECLARE anzahl_mitglieder INT;
+    DECLARE ersteller_id INT;
+    DECLARE ist_ersteller_mitglied INT;
+    DECLARE neuer_besitzer_id INT;
+
+    CALL GruppenBeitragVerfassen(concat(StudentenName(old.student_id),
+        ' hat die Gruppe verlassen.'), old.gruppe_id, NULL);
+
+    SELECT COUNT(gs.student_id) INTO anzahl_mitglieder
+    FROM Gruppe_Student gs
+    WHERE gs.gruppe_id = old.gruppe_id;
+
+    IF anzahl_mitglieder = 0 THEN
+        -- Es ist kein Mitglied mehr übrig, die Gruppe kann gelöscht werden.
+        DELETE FROM GruppenAnfrage WHERE gruppe_id = old.gruppe_id;
+        DELETE FROM GruppenEinladung WHERE gruppe_id = old.gruppe_id;
+        DELETE FROM GruppenDienstlink WHERE gruppe_id = old.gruppe_id;
+        DELETE FROM GruppenBeitrag WHERE gruppe_id = old.gruppe_id;
+        -- Die folgende Zeile kann nicht in MySQL ausgeführt werden.
+        -- Da sie in diesem Kontext auch nichts tut ist es in Ordnung sie wegzulassen.
+     -- DELETE FROM Gruppe_Student WHERE gruppe_id = old.gruppe_id;
+        DELETE FROM Gruppe WHERE id = old.gruppe_id;
+        LEAVE this_trigger;
+    END IF;
+
+    SELECT g.ersteller_id INTO ersteller_id
+    FROM Gruppe g WHERE g.id = old.gruppe_id;
+
+    SELECT COUNT(gs.student_id) INTO ist_ersteller_mitglied
+    FROM Gruppe_Student gs
+    WHERE gs.gruppe_id = old.gruppe_id
+        AND gs.student_id = ersteller_id;
+
+    IF ist_ersteller_mitglied = 1 THEN
+        LEAVE this_trigger;
+    END IF;
+
+    -- Der Ersteller befindet sich nicht mehr in der Gruppe.
+
+    -- Unter den noch vorhandenen Nutzern wird derjenige zum
+    -- neuen Besitzer erwählt, welcher zuerst beigetreten ist.
+
+    SELECT gs.student_id INTO neuer_besitzer_id
+    FROM Gruppe_Student gs
+    WHERE gs.gruppe_id = old.gruppe_id
+    ORDER BY beitrittsdatum
+    LIMIT 1;
+
+    UPDATE Gruppe g
+    SET g.ersteller_id = neuer_besitzer_id
+    WHERE g.id = old.gruppe_id;
+
+    CALL GruppenBeitragVerfassen(concat(StudentenName(neuer_besitzer_id),
+        ' wurde zum neuen Gruppenleiter erwählt.'), old.gruppe_id, NULL);
+END //
+DELIMITER ; -- delimiter resetten
+
 -- endregion
 
 -- region FUNCTION - Funktionen erstellen
 
+DROP FUNCTION IF EXISTS StudentenName;
+
+DELIMITER //
+CREATE FUNCTION StudentenName
+    (in_student_id INT)
+RETURNS VARCHAR(64)
+DETERMINISTIC
+BEGIN
+    DECLARE name VARCHAR(64);
+
+    SELECT s.name INTO name
+    FROM Student s
+    WHERE s.id = in_student_id;
+
+    RETURN name;
+END;
+//
+DELIMITER ;
+
 -- endregion
 
 -- region PROCEDURE - Prozeduren erstellen
+
+DROP PROCEDURE IF EXISTS GruppenBeitragVerfassen;
+
+DELIMITER //
+CREATE PROCEDURE GruppenBeitragVerfassen
+    (IN in_nachricht VARCHAR(1024),
+     IN in_gruppe_id INTEGER,
+     IN in_student_id INTEGER)
+BEGIN
+    INSERT INTO GruppenBeitrag (gruppe_id, student_id, datum, nachricht)
+    VALUES (in_gruppe_id, in_student_id, CURRENT_DATE, in_nachricht);
+END;
+//
+DELIMITER ;
 
 -- endregion
 

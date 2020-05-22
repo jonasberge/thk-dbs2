@@ -255,10 +255,10 @@ COMPOUND TRIGGER
     g_gruppen gruppe_t := gruppe_t();
 
     BEFORE EACH ROW IS
-        g_betretbar         Gruppe.betretbar % TYPE;
-        g_deadline          Gruppe.deadline % TYPE;
-        anfrage_bestaetigt  INTEGER DEFAULT 0;
         g_limit            Gruppe.limit % TYPE;
+        g_betretbar        Gruppe.betretbar % TYPE;
+        g_deadline         Gruppe.deadline % TYPE;
+        anfrage_bestaetigt INTEGER DEFAULT 0;
 
         CURSOR cursor_Gruppe_Attribute IS
             SELECT limit, betretbar, deadline
@@ -270,16 +270,18 @@ COMPOUND TRIGGER
         OPEN cursor_Gruppe_Attribute;
         FETCH cursor_Gruppe_Attribute INTO g_limit, g_betretbar, g_deadline;
         IF cursor_Gruppe_Attribute % NOTFOUND THEN
-            RAISE_APPLICATION_ERROR(-20009, 'Gruppendaten konnten nicht abgerufen werden.');
+            RAISE_APPLICATION_ERROR(-20009, 'Gruppendaten von Gruppe ' || :new.gruppe_id
+                                         || ' konnten nicht abgerufen werden.');
         END IF;
         CLOSE cursor_Gruppe_Attribute;
 
         IF g_deadline IS NOT NULL AND g_deadline < SYSDATE THEN
-            RAISE_APPLICATION_ERROR(-20002, 'Beitritt nicht mehr möglich, Deadline überschritten.');
+            RAISE_APPLICATION_ERROR(-20002, 'Beitritt in Gruppe ' || :new.gruppe_id
+                                         || ' nicht mehr möglich, Deadline überschritten.');
         END IF;
 
         IF g_betretbar = '0' THEN
-            SELECT COUNT(*) INTO anfrage_bestaetigt
+            SELECT COUNT(1) INTO anfrage_bestaetigt
             FROM GruppenAnfrage
             WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id AND bestaetigt = '1';
 
@@ -298,12 +300,11 @@ COMPOUND TRIGGER
 
         GruppenBeitragVerfassen(StudentenName(:new.student_id)
             || ' ist der Gruppe beigetreten.', :new.gruppe_id);
-
     END BEFORE EACH ROW;
 
     AFTER STATEMENT IS
-        anzahl_mitglieder   INTEGER DEFAULT 0;
         g_limit           Gruppe.limit % TYPE;
+        anzahl_mitglieder INTEGER DEFAULT 0;
     BEGIN
         FOR i IN g_gruppen.FIRST .. g_gruppen.LAST
         LOOP
@@ -316,8 +317,9 @@ COMPOUND TRIGGER
             WHERE g.id = g_gruppen(i);
 
             IF anzahl_mitglieder > g_limit THEN
-                RAISE_APPLICATION_ERROR(-20004, 'Insert überschreitet mit ' || anzahl_mitglieder
-                                                    || ' das Limit von ' || g_limit || ' Mitgliedern');
+                RAISE_APPLICATION_ERROR(-20004, 'Insert in Gruppe ' || g_gruppen(i)
+                                             || ' überschreitet mit ' || anzahl_mitglieder
+                                             || ' Mitgliedern das Limit von ' || g_limit);
             END IF;
         END LOOP;
     END AFTER STATEMENT;

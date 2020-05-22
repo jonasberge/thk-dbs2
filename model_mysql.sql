@@ -184,12 +184,22 @@ CREATE TABLE GruppenAnfrage (
     student_id INTEGER NOT NULL,
     datum      DATE    NOT NULL,
     nachricht  VARCHAR(256),
+    bestaetigt CHAR(1) DEFAULT '0' NOT NULL,
     PRIMARY KEY (gruppe_id, student_id),
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
     FOREIGN KEY (student_id)
         REFERENCES Student (id)
 );
+
+ALTER TABLE GruppenAnfrage
+    ADD CONSTRAINT check_GruppenAnfrage_betretbar
+        CHECK (bestaetigt in ('1', '0'));
+
+
+
+
+
 
 -- Eine Einladung zu einer Gruppe. Wird für Einladungslinks verwendet.
 CREATE TABLE GruppenEinladung (
@@ -211,56 +221,56 @@ CREATE TABLE GruppenEinladung (
 
 --region Tabellen mit Daten befuellen zum Testzwecken-------------
 --------------------Erstellung Fakultaet-----------------------------
-INSERT INTO fakultaet (name, standort) values('Fakultaet InfoING', 'Gummersbach');
-INSERT INTO fakultaet(name, standort) values('Fakultaet fuer Fahrzeugsysteme und Produktion', 'Koeln');
-INSERT INTO fakultaet (name, standort) values(' Fakultaet fuer Architektur', 'Koeln');
+INSERT INTO Fakultaet (name, standort) values('Fakultaet InfoING', 'Gummersbach');
+INSERT INTO Fakultaet(name, standort) values('Fakultaet fuer Fahrzeugsysteme und Produktion', 'Koeln');
+INSERT INTO Fakultaet (name, standort) values(' Fakultaet fuer Architektur', 'Koeln');
 /*Erstellung Studiangang */
 
-INSERT INTO studiengang values(1,'MASCHINENBAU',1, 'BSC.INF');
-INSERT INTO studiengang values(2,'INFORMATIK', 2, 'BSC.ING');
-INSERT INTO studiengang values(3'ELEKTROTECHNIK', 3, 'BSC.ING');
+INSERT INTO Studiengang values(1,'MASCHINENBAU',1, 'BSC.INF');
+INSERT INTO Studiengang values(2,'INFORMATIK', 2, 'BSC.ING');
+INSERT INTO Studiengang values(3,'ELEKTROTECHNIK', 3, 'BSC.ING');
 
 /*Erstellung Modulen */
-INSERT INTO modul values(1,  'INFORMATIK','Koenen', 1);
-INSERT INTO modul values(2, 'INFORMATIK','EISENMANN',  2);
-INSERT INTO modul values(3, 'Werkstoffe','Mustermann',  3);
+INSERT INTO Modul values(1,  'INFORMATIK','Koenen', 1);
+INSERT INTO Modul values(2, 'INFORMATIK','EISENMANN',  2);
+INSERT INTO Modul values(3, 'Werkstoffe','Mustermann',  3);
 
 /* Erstellung Student */
 
- INSERT INTO student values(1,'Tobias','help@smail.th-koeln.de',1,2,'xxxa','Lernstube',NULL,SYSDATE);
-  INSERT INTO student values(2,'Hermann','test@smail.th-koeln.de',2,4,'ppp','study',NULL,DATE_FORMAT('17/12/2008', 'DD/MM/YYYY'));
-  INSERT INTO student values(3,'Luc','luc@smail.th-koeln.de',3,2,'lll','etude',NULL,DATE_FORMAT('09/12/2008', 'DD/MM/YYYY'));
-  INSERT INTO student values(4,'Frida','bol@smail.th-koeln.de',2,4,'ppp','pass',NULL,DATE_FORMAT('17/12/2000', 'DD/MM/YYYY'));
+ INSERT INTO Student values(1,'Tobias','help@smail.th-koeln.de',1,2,'xxxa','Lernstube',NULL,SYSDATE());
+  INSERT INTO Student values(2,'Hermann','test@smail.th-koeln.de',2,4,'ppp','study',NULL,DATE_FORMAT('17/12/2008', 'DD/MM/YYYY'));
+  INSERT INTO Student values(3,'Luc','luc@smail.th-koeln.de',3,2,'lll','etude',NULL,DATE_FORMAT('09/12/2008', 'DD/MM/YYYY'));
+  INSERT INTO Student values(4,'Frida','bol@smail.th-koeln.de',2,4,'ppp','pass',NULL,DATE_FORMAT('17/12/2000', 'DD/MM/YYYY'));
 
 /*Erstellung Gruppe */
-INSERT INTO gruppe values(1,1,3,'TEST',5,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
-INSERT INTO gruppe values(2,2,2,'zudy',3,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
-INSERT INTO gruppe values(3,3,1,'PP',3,'1','0',DATE_FORMAT('01/07/2020', 'DD/MM/YYYY'),'Koeln');
-INSERT INTO gruppe values(4,3,1,'ALGO',2,'0','1',DATE_FORMAT('01/06/2020', 'DD/MM/YYYY'),'Koeln');
+INSERT INTO Gruppe values(1,1,3,'TEST',5,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
+INSERT INTO Gruppe values(2,2,2,'zudy',3,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
+INSERT INTO Gruppe values(3,3,1,'PP',3,'1','0',DATE_FORMAT('01/07/2020', 'DD/MM/YYYY'),'Koeln');
+INSERT INTO Gruppe values(4,3,1,'ALGO',2,'0','1',DATE_FORMAT('01/06/2020', 'DD/MM/YYYY'),'Koeln');
 
 /* Erstellung Gruppenbeitrag */
 
-INSERT INTO gruppenBeitrag values(1,1,2,'2015-12-17','hello world');
-INSERT INTO gruppenBeitrag values(2,2,1,'2020-06-17','was lauft..');
-INSERT INTO gruppenBeitrag values(3,1,2,'2020-07-17' ,'wann ist naechste ..');
-INSERT INTO gruppenBeitrag values(4,3,2,'2019-02-01','Termin wird verschoben ..');
-INSERT INTO gruppenBeitrag values(5,3,2,'2020-05-17','ich bin heute nicht dabei..');
-INSERT INTO gruppenBeitrag values(6,3,2,'2020-07-17','wann ist naechste ..');
+INSERT INTO GruppenBeitrag values(1,1,2,'2015-12-17','hello world');
+INSERT INTO GruppenBeitrag values(2,2,1,'2020-06-17','was lauft..');
+INSERT INTO GruppenBeitrag values(3,1,2,'2020-07-17' ,'wann ist naechste ..');
+INSERT INTO GruppenBeitrag values(4,3,2,'2019-02-01','Termin wird verschoben ..');
+INSERT INTO GruppenBeitrag values(5,3,2,'2020-05-17','ich bin heute nicht dabei..');
+INSERT INTO GruppenBeitrag values(6,3,2,'2020-07-17','wann ist naechste ..');
 
 
 
 /*Erstellung gruppeDiensLink */
 
-INSERT INTO GruppenDienstLink values('1',HTTPURITYPE('https://ggogleTrst'));
-INSERT INTO GruppenDienstLink values('2',HTTPURITYPE('https://google.de'));
-INSERT INTO GruppenDienstLink values('4',HTTPURITYPE('https://test.de'));
+INSERT INTO GruppenDienstLink values('1','https://ggogleTrst');
+INSERT INTO GruppenDienstLink values('2','https://google.de');
+INSERT INTO GruppenDienstLink values('4','https://test.de');
 
 
 /*Erstellung beitrittsAnfrage */
 
-INSERT INTO GruppenAnfrage values(1,2,SYSDATE,'hello, ich wuerde gerne..');
-INSERT INTO GruppenAnfrage values(3,1,TO_DATE('17/12/2015', 'DD/MM/YYYY'),'hello, ich wuerde gerne..');
-INSERT INTO GruppenAnfrage values(2,3,TO_DATE('10/12/2015', 'DD/MM/YYYY'),'hello, ich wuerde gerne..');
+INSERT INTO GruppenAnfrage values(1,2,SYSDATE(),'hello, ich wuerde gerne..', '1');
+INSERT INTO GruppenAnfrage values(3,1,ifnull(DATE_FORMAT('17/12/2015', 'DD/MM/YYYY'), ''),'hello, ich wuerde gerne..','1');
+INSERT INTO GruppenAnfrage values(2,3,ifnull(DATE_FORMAT('17/12/2019', 'DD/MM/YYYY'), ''),'hello, ich wuerde gerne..','0');
 COMMIT;
 
 
@@ -330,8 +340,10 @@ SELECT COUNT(gruppe_id) into nr
    /*-----------------------------*/
 OPEN kundenCursor;
         REPEAT
-            FETCH kundenCursor INTO v_date; /* hier gibt ein problem : functionier nutr wenn ein datensatz vorhanden ist.  Am besten
- ist die sachen in einer liste einzufügen wie in oracle. aber finde im moment keinen Ansatz  für liste in mysql			*/
+            FETCH kundenCursor INTO v_date; /* hier gibt ein problem : 
+            functionier nur wenn ein datensatz vorhanden ist.  Am besten
+            ist die sachen in einer liste einzufügen wie in oracle. ES gibt aber kein liste definition in mysql	
+            Die Idee ist dann mit PHP ein array zu definieren und in mysql einbieden*/
             set v_start = v_date;
             IF NOT finished THEN 
             label1: LOOP

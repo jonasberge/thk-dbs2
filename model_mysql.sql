@@ -236,7 +236,7 @@ BEGIN
     FROM Gruppe_Student
     WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
 
-    IF anzahl_mitglieder < g_limit THEN
+    IF anzahl_mitglieder = g_limit THEN
         signal sqlstate '20001' set message_text = 'Gruppe bereits vollständig.';
     END IF;
 

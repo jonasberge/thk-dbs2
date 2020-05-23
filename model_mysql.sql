@@ -237,10 +237,10 @@ INSERT INTO Modul values(3, 'Werkstoffe','Mustermann',  3);
 
 /* Erstellung Student */
 
- INSERT INTO Student values(1,'Tobias','help@smail.th-koeln.de',1,2,'xxxa','Lernstube',NULL,SYSDATE());
-  INSERT INTO Student values(2,'Hermann','test@smail.th-koeln.de',2,4,'ppp','study',NULL,DATE_FORMAT('17/12/2008', 'DD/MM/YYYY'));
-  INSERT INTO Student values(3,'Luc','luc@smail.th-koeln.de',3,2,'lll','etude',NULL,DATE_FORMAT('09/12/2008', 'DD/MM/YYYY'));
-  INSERT INTO Student values(4,'Frida','bol@smail.th-koeln.de',2,4,'ppp','pass',NULL,DATE_FORMAT('17/12/2000', 'DD/MM/YYYY'));
+INSERT INTO Student values(1,'Tobias','help@smail.th-koeln.de',1,2,'xxxa','Lernstube',NULL,SYSDATE());
+INSERT INTO Student values(2,'Hermann','test@smail.th-koeln.de',2,4,'ppp','study',NULL,DATE_FORMAT('17/12/2008', 'DD/MM/YYYY'));
+INSERT INTO Student values(3,'Luc','luc@smail.th-koeln.de',3,2,'lll','etude',NULL,DATE_FORMAT('09/12/2008', 'DD/MM/YYYY'));
+INSERT INTO Student values(4,'Frida','bol@smail.th-koeln.de',2,4,'ppp','pass',NULL,DATE_FORMAT('17/12/2000', 'DD/MM/YYYY'));
 
 /*Erstellung Gruppe */
 INSERT INTO Gruppe values(1,1,3,'TEST',5,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
@@ -309,73 +309,59 @@ SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Eine Gruppe kann nicht mehr als 5 Di
  END //
 DELIMITER ;
 
-DROP  FUNCTION IF EXISTS lastComment;
+/* PROCEDURE FÜR LETZER BEITRAG EINER GRUPPE */
+
+DELIMITER ;
+
+DROP  PROCEDURE IF EXISTS lastdateComment;
 
 delimiter //
 
-create FUNCTION lastComment(v_gruppe_id INT ) 
-RETURNS Varchar(4000)  
+CREATE PROCEDURE lastdateComment(v_gruppe_id INT )  
 
 BEGIN
-declare r_comment VARCHAR(250);
-declare v_name VARCHAR(250);
-declare v_start date;
-declare v_date date;
-declare v_iterator date;
-declare v_result VARCHAR(400);
-declare nr INT;
-DECLARE finished INT DEFAULT 0;
-declare j INT DEFAULT 1;
-DECLARE done INT DEFAULT FALSE;
+    DECLARE r_comment VARCHAR(250);
+    DECLARE v_name VARCHAR(250);
+    DECLARE v_start date;
+    DECLARE v_date date;
+    DECLARE nr INT;
+    DECLARE finished INT DEFAULT 0;
 
-/* function letzer beitrag */
+    DECLARE kundenCursor CURSOR FOR  SELECT  (b.datum ),e.name, b.Nachricht
+    FROM  gruppenBeitrag b INNER JOIN gruppe e  ON  b.gruppe_id = e.id  
+    where b.gruppe_id = v_gruppe_id ORDER BY b.datum DESC LIMIT 1;
 
-DECLARE kundenCursor CURSOR FOR SELECT b.datum FROM gruppenbeitrag b WHERE b.gruppe_id = v_gruppe_id ;
-DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET finished=1;  
+    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET finished=1;  
 
+    /*Eine temporaere Table erzeugen um die Werten abzuspeichern */
+    DROP TEMPORARY TABLE IF EXISTS TempTable;
+	CREATE TEMPORARY TABLE TempTable( v_date DATE,v_name VARCHAR(250),r_comment VARCHAR(250));
 
-SELECT COUNT(gruppe_id) into nr
-         FROM gruppenBeitrag where gruppe_id = v_gruppe_id;        
-   if (nr> 0) THEN
-   /*-----------------------------*/
-OPEN kundenCursor;
-        REPEAT
-            FETCH kundenCursor INTO v_date; /* hier gibt ein problem : 
-            functionier nur wenn ein datensatz vorhanden ist.  Am besten
-            ist die sachen in einer liste einzufügen wie in oracle. ES gibt aber kein liste definition in mysql	
-            Die Idee ist dann mit PHP ein array zu definieren und in mysql einbieden*/
-            set v_start = v_date;
-            IF NOT finished THEN 
-            label1: LOOP
-				SET j = j+1;
-				IF j < nr THEN
-				ITERATE label1;
-                	if (v_start < v_date) THEN
-					   set v_start = v_date;
-					end if;
-                
-				END IF;
-				LEAVE label1;
-				END LOOP label1;
-				-- set v_result = v_start;
-                
-            
-   
-   END IF;
-        UNTIL finished END REPEAT;
+    /*--Die Anzahl von den Beiteagen zu einer gegebenen 
+    --Gruppe in der Variable nr speicher*/
+    SELECT COUNT(gruppe_id) into nr
+	FROM gruppenBeitrag where gruppe_id = v_gruppe_id;    
+
+    /*---Wenn die anzahl der Beitraegen großer null ist, dann der Cursor öffnen*/
+    IF (nr> 0) THEN
+
+    OPEN kundenCursor;
+  	forloop:LOOP
+		FETCH kundenCursor INTO v_date,v_name ,r_comment ;
+			IF finished THEN
+				LEAVE forLoop;
+			END IF;
+        INSERT INTO TempTable (v_date,v_name ,r_comment)
+		VALUES ( v_date,v_name ,r_comment);
+	END LOOP forLoop;
+	SELECT * from TempTable; /*---Ergebnis aus der Tabelle ausgeben*/
     CLOSE kundenCursor;
-	
-SELECT  b.Nachricht INTO r_comment FROM gruppenbeitrag b WHERE b.datum = v_start;
 
-SELECT  name INTO v_name FROM gruppe  WHERE id = v_gruppe_id;
+/*---Eine Fehlermeldung ausgeben, wenn keine Beitrege der Gruppe vorhanden ist.*/
+    ELSE
+	    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Es liegen keine Beitraegen von deiner Gruppe vor' ; 
+    END IF;
 
-set v_result = CONCAT('letzer Beitrag von deiner Gruppe ', ifnull(v_name, '') , ' ', 'ist :',ifnull(r_comment, ''));
-
-ELSE
-	SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Es liegen keine Beitraegen von deiner Gruppe vor' ; 
-end if;
- 
-RETURN v_result;
 END //
 DELIMITER ;
 

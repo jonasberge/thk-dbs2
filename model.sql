@@ -256,7 +256,7 @@ DECLARE
 BEGIN
     IF UPDATING THEN
         IF NOT UPDATING('nachricht') THEN
-            RAISE_APPLICATION_ERROR(-20034, 'Nur die Nachricht einer Anfrage kann bearbeitet werden.');
+            RAISE_APPLICATION_ERROR(-20031, 'Nur die Nachricht einer Anfrage kann bearbeitet werden.');
         END IF;
         RETURN;
     END IF;
@@ -266,7 +266,7 @@ BEGIN
     WHERE g.id = :new.gruppe_id;
 
     IF gruppe_betretbar = '1' THEN
-        RAISE_APPLICATION_ERROR(-20031, 'Diese Gruppe erfordert keine Anfrage.');
+        RAISE_APPLICATION_ERROR(-20032, 'Diese Gruppe erfordert keine Anfrage.');
     END IF;
 
     SELECT COUNT(1) INTO bereits_in_gruppe
@@ -274,7 +274,7 @@ BEGIN
     WHERE gs.gruppe_id = :new.gruppe_id AND gs.student_id = :new.student_id;
 
     IF bereits_in_gruppe = 1 THEN
-        RAISE_APPLICATION_ERROR(-20031, 'Der anfragende Nutzer ist bereits in dieser Gruppe.');
+        RAISE_APPLICATION_ERROR(-20033, 'Der anfragende Nutzer ist bereits in dieser Gruppe.');
     END IF;
 
     SELECT COUNT(1) INTO anfrage_existiert
@@ -282,11 +282,11 @@ BEGIN
     WHERE ga.gruppe_id = :new.gruppe_id AND ga.student_id = :new.student_id;
 
     IF anfrage_existiert = 1 THEN
-        RAISE_APPLICATION_ERROR(-20032, 'Es existiert bereits eine Anfrage für diesen Nutzer.');
+        RAISE_APPLICATION_ERROR(-20034, 'Es existiert bereits eine Anfrage für diesen Nutzer.');
     END IF;
 
     IF :new.bestaetigt = '1' THEN
-        RAISE_APPLICATION_ERROR(-20033, 'Eine neue Gruppenanfrage muss unbestätigt sein.');
+        RAISE_APPLICATION_ERROR(-20035, 'Eine neue Gruppenanfrage muss unbestätigt sein.');
     END IF;
 
     :new.datum := SYSDATE; -- Stelle sicher dass das Datum aktuell ist.

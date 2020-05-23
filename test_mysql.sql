@@ -104,41 +104,52 @@ VALUES (1, 'Mathematik 1', 'Wolfgang Konen', 1);
 
 INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
                      PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)
-SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual UNION
-SELECT 2, 'Peter', 'peter@th-koeln.de', 'h', 'Ich bin Technologie-begeistert.',  NULL, 1, 1 FROM dual UNION
-SELECT 3, 'Hans',   'hans@th-koeln.de', 'h', 'Tortillas sind meine Spezialität', NULL, 1, 1 FROM dual;
+    SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual UNION
+    SELECT 2, 'Peter', 'peter@th-koeln.de', 'h', 'Ich bin Technologie-begeistert.',  NULL, 1, 1 FROM dual UNION
+    SELECT 3, 'Hans',   'hans@th-koeln.de', 'h', 'Tortillas sind meine Spezialität', NULL, 1, 1 FROM dual;
 
-INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME)
-SELECT 1, 1, 1 /* Frank */, 'Mathe-Boyz'    FROM dual UNION
-SELECT 2, 1, 1 /* Frank */, 'Mathe-Boyz #2' FROM dual UNION
-SELECT 3, 1, 2 /* Peter */, 'Math Rivals'   FROM dual;
-
-UPDATE Gruppe SET betretbar = '1' WHERE id = 1;
+INSERT INTO Gruppe (ID, MODUL_ID, BETRETBAR, ERSTELLER_ID, NAME)
+    SELECT 1, 1, '1', 1 /* Frank */, 'Mathe-Boyz'    FROM dual UNION
+    SELECT 2, 1, '0', 1 /* Frank */, 'Mathe-Boyz #2' FROM dual UNION
+    SELECT 3, 1, '1', 2 /* Peter */, 'Math Rivals'   FROM dual;
 
 -- endregion
 
+/* [Vorher]
+    GRUPPE          ID      BETRETBAR   DEADLINE   MITGLIEDER
+    Mathe-Boyz      1       ja          keine       /
+    Mathe-Boyz #2   2       auf Anfrage keine       /
+    Math Rivals     3       ja          keine       /
+
+    STUDENT ID
+    Frank   1
+    Peter   2
+    Hans    3
+*/
+
 -- Beitritt nur bei bestätigter Anfrage möglich
 INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
-SELECT 2, 1, NOW() FROM dual;
+VALUES (2, 1, NOW()); -- Erster Beitrittsversuch gelingt nicht
 
 INSERT INTO GruppenAnfrage (GRUPPE_ID, STUDENT_ID, BESTAETIGT, DATUM)
-SELECT 2, 1, '1', NOW() FROM dual;
+VALUES (2, 1, '1', NOW()); -- Gruppenanfrage gestellt und bestätigt
 
 INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
-SELECT 2, 1, NOW() FROM dual;
+VALUES (2, 1, NOW()); -- Erneuter Beitrittsversuch erfolgreich
 
 -- Beitritt nur vor Deadline möglich
+-- Für Gruppe 1 Deadline in Vergangenheit setzen
 UPDATE Gruppe SET deadline = NOW() - INTERVAL 1 DAY WHERE id = 1;
 INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
-SELECT 1, 1, NOW() FROM dual;
+    SELECT 1, 1, NOW() FROM dual; -- Beitritt nicht mehr möglich
 
 -- Insert nur möglich wenn Limit an Mitgliedern nicht überschritten wird
-UPDATE Gruppe SET betretbar = '1' WHERE id = 3;
-UPDATE Gruppe SET `limit` = 2 WHERE id = 3;
+-- Funktioniert bei unserem MySQL Trigger nicht, muss außerhalb der DB gelöst werden
+UPDATE Gruppe SET `limit` = 1 WHERE id = 3; -- Für Gruppe 3 Limit auf 1 setzen
+
 INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
-SELECT 3, 1, NOW() FROM dual UNION
-SELECT 3, 2, NOW() FROM dual UNION
-SELECT 3, 3, NOW() FROM dual;
+    SELECT 3, 1, NOW() FROM dual UNION
+    SELECT 3, 2, NOW() FROM dual; -- Nun 2 Mitglieder drin obwohl Limit 1
 
 -- region [teardown]
 

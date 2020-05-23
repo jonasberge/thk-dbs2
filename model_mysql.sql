@@ -236,7 +236,12 @@ BEGIN
     FROM Gruppe_Student
     WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
 
-    IF anzahl_mitglieder = g_limit THEN
+    -- Bei MySQL kein Mutating Table Problem bei Select
+    -- Wert bleibt aber bei jeder Zeile gleich (Zustand vor dem Insert)
+    -- Limit Abfrage greift nur wenn Gruppe zu Beginn schon zu viele Mitglieder hat
+    -- Daher Lösung außerhalb des Triggers hierfür nötig
+
+    IF anzahl_mitglieder + 1 > g_limit THEN
         signal sqlstate '20001' set message_text = 'Gruppe bereits vollständig.';
     END IF;
 
@@ -282,7 +287,7 @@ this_trigger: BEGIN
     FROM Gruppe_Student gs
     WHERE gs.gruppe_id = old.gruppe_id;
 
-    IF anzahl_mitglieder = 0 THEN
+    IF anzahl_mitglieder + 1 >= g_limit THEN
         -- Es ist kein Mitglied mehr übrig, die Gruppe kann gelöscht werden.
         DELETE FROM GruppenAnfrage WHERE gruppe_id = old.gruppe_id;
         DELETE FROM GruppenEinladung WHERE gruppe_id = old.gruppe_id;

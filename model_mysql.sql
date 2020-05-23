@@ -355,6 +355,117 @@ END;
 //
 DELIMITER ;
 
+DELIMITER //
+CREATE FUNCTION GruppenAuflistenNachModul
+    (in_modul_id INT)
+RETURNS JSON
+BEGIN
+    DECLARE modul_existiert     INT;
+
+    DECLARE gruppe_id           INT;
+    DECLARE gruppe_name         VARCHAR(64);
+
+    DECLARE deadline            DATETIME;
+    DECLARE gruppe_limit        INT;
+    DECLARE mitglieder          INT;
+
+    DECLARE betretbar           CHAR(1);
+    DECLARE betretbar_bool      BOOLEAN;
+
+    DECLARE oeffentlich         CHAR(1);
+    DECLARE oeffentlich_bool    BOOLEAN;
+
+    DECLARE ersteller_id        INT;
+    DECLARE ersteller_name      VARCHAR(64);
+
+    DECLARE ergebnis            JSON;
+
+    DECLARE finished            INT DEFAULT 0;
+    DECLARE gruppenCursor       CURSOR
+    FOR
+        SELECT  id,
+                name,
+                oeffentlich,
+                betretbar,
+                g.deadline,
+                g.ersteller_id,
+                (SELECT name FROM Student s WHERE s.id = g.ersteller_id),
+                `limit`,
+                (SELECT COUNT(*) FROM Gruppe_Student gs WHERE gs.gruppe_id = g.id)
+        FROM Gruppe g
+        WHERE g.modul_id = in_modul_id;
+
+    DECLARE                     CONTINUE HANDLER
+    FOR SQLSTATE '02000' SET finished = 1;
+
+    SELECT COUNT(*)
+    INTO modul_existiert
+    FROM Modul
+    WHERE id = in_modul_id;
+
+    IF modul_existiert <> 1 THEN
+        set @message_text = concat('Modul mit der ID ', in_modul_id, ' existiert nicht.');
+        signal sqlstate '20041' set message_text = @message_text;
+    END IF;
+
+    SET ergebnis = JSON_ARRAY();
+
+    OPEN gruppenCursor;
+        REPEAT
+            FETCH gruppenCursor INTO
+                gruppe_id,
+                gruppe_name,
+                oeffentlich,
+                betretbar,
+                deadline,
+                ersteller_id,
+                ersteller_name,
+                gruppe_limit,
+                mitglieder;
+
+            IF NOT finished THEN
+
+                IF betretbar = '0' THEN
+                    SET betretbar_bool = 0;
+                ELSE
+                    SET betretbar_bool = 1;
+                END IF;
+
+                IF oeffentlich = '0' THEN
+                    SET oeffentlich_bool = 0;
+                ELSE
+                    SET oeffentlich_bool = 1;
+                END IF;
+
+                SELECT
+                    JSON_ARRAY_APPEND (
+                        ergebnis, -- json_doc
+                        '$', -- path
+                        JSON_OBJECT ( -- value
+                            'id', gruppe_id,
+                            'name', gruppe_name,
+                            'oeffentlich', oeffentlich_bool,
+                            'betretbar', betretbar_bool,
+                            'deadline', deadline, -- cursor gibt null zurück
+                            'ersteller', JSON_OBJECT (
+                                'id', ersteller_id,
+                                'name', ersteller_name
+                            ),
+                            'limit', gruppe_limit,
+                            'mitgliederzahl', mitglieder -- wird nicht berechnet
+                        )
+                    )
+                INTO ergebnis
+                FROM DUAL;
+            END IF;
+        UNTIL finished END REPEAT;
+    CLOSE gruppenCursor;
+
+    RETURN ergebnis;
+END;
+//
+DELIMITER ;
+
 -- endregion
 
 -- region PROCEDURE - Prozeduren erstellen

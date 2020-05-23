@@ -287,7 +287,7 @@ this_trigger: BEGIN
     FROM Gruppe_Student gs
     WHERE gs.gruppe_id = old.gruppe_id;
 
-    IF anzahl_mitglieder + 1 >= g_limit THEN
+    IF anzahl_mitglieder = 0 THEN
         -- Es ist kein Mitglied mehr übrig, die Gruppe kann gelöscht werden.
         DELETE FROM GruppenAnfrage WHERE gruppe_id = old.gruppe_id;
         DELETE FROM GruppenEinladung WHERE gruppe_id = old.gruppe_id;

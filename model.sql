@@ -246,6 +246,52 @@ CREATE TABLE GruppenEinladung (
 
 -- region TRIGGER - Trigger erstellen
 
+CREATE OR REPLACE TRIGGER trigger_GruppenAnfrage
+BEFORE INSERT OR UPDATE ON GruppenAnfrage
+FOR EACH ROW
+DECLARE
+    gruppe_betretbar INTEGER;
+    bereits_in_gruppe INTEGER;
+    anfrage_existiert INTEGER;
+BEGIN
+    IF UPDATING THEN
+        IF NOT UPDATING('nachricht') THEN
+            RAISE_APPLICATION_ERROR(-20034, 'Nur die Nachricht einer Anfrage kann bearbeitet werden.');
+        END IF;
+        RETURN;
+    END IF;
+
+    SELECT g.betretbar INTO gruppe_betretbar
+    FROM Gruppe g
+    WHERE g.id = :new.gruppe_id;
+
+    IF gruppe_betretbar = '1' THEN
+        RAISE_APPLICATION_ERROR(-20031, 'Diese Gruppe erfordert keine Anfrage.');
+    END IF;
+
+    SELECT COUNT(1) INTO bereits_in_gruppe
+    FROM Gruppe_Student gs
+    WHERE gs.gruppe_id = :new.gruppe_id AND gs.student_id = :new.student_id;
+
+    IF bereits_in_gruppe = 1 THEN
+        RAISE_APPLICATION_ERROR(-20031, 'Der anfragende Nutzer ist bereits in dieser Gruppe.');
+    END IF;
+
+    SELECT COUNT(1) INTO anfrage_existiert
+    FROM GruppenAnfrage ga
+    WHERE ga.gruppe_id = :new.gruppe_id AND ga.student_id = :new.student_id;
+
+    IF anfrage_existiert = 1 THEN
+        RAISE_APPLICATION_ERROR(-20032, 'Es existiert bereits eine Anfrage für diesen Nutzer.');
+    END IF;
+
+    IF :new.bestaetigt = '1' THEN
+        RAISE_APPLICATION_ERROR(-20033, 'Eine neue Gruppenanfrage muss unbestätigt sein.');
+    END IF;
+
+    :new.datum := SYSDATE; -- Stelle sicher dass das Datum aktuell ist.
+END;
+
 CREATE OR REPLACE TRIGGER trigger_GruppeBeitreten
 FOR INSERT ON Gruppe_Student
 COMPOUND TRIGGER

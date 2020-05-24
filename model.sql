@@ -15,6 +15,13 @@ DROP TABLE Modul;
 DROP TABLE Studiengang;
 DROP TABLE Fakultaet;
 
+DROP PROCEDURE GruppenBeitragVerfassen;
+DROP PROCEDURE GruppeLoeschen;
+DROP PROCEDURE AccountZuruecksetzen;
+DROP PROCEDURE LerngruppenAusgeben;
+
+DROP FUNCTION StudentenName;
+
 DROP SEQUENCE sequence_Fakultaet;
 DROP SEQUENCE sequence_Studiengang;
 DROP SEQUENCE sequence_Modul;
@@ -224,6 +231,18 @@ CREATE TABLE GruppenEinladung (
 
 -- endregion
 
+-- region SEQUENCE - Sequenzen erstellen
+
+CREATE SEQUENCE sequence_Fakultaet;
+CREATE SEQUENCE sequence_Studiengang;
+CREATE SEQUENCE sequence_Modul;
+CREATE SEQUENCE sequence_Student;
+CREATE SEQUENCE sequence_EindeutigeKennung;
+CREATE SEQUENCE sequence_Gruppe;
+CREATE SEQUENCE sequence_GruppenBeitrag;
+
+-- endregion
+
 -- region APPLICATION_ERROR - Eigene Fehlermeldungen
 
 /*
@@ -241,6 +260,123 @@ CREATE TABLE GruppenEinladung (
     AccountZuruecksetzen-Funktion
     -20021, Student mit der ID ? existiert nicht.
 */
+
+-- endregion
+
+-- region FUNCTION - Funktionen erstellen
+
+CREATE OR REPLACE FUNCTION StudentenName
+    (student_id INTEGER)
+RETURN Student.name % TYPE
+IS
+    name Student.name % TYPE;
+BEGIN
+    SELECT s.name INTO name
+    FROM Student s
+    WHERE s.id = student_id;
+
+    RETURN name;
+END;
+/
+
+-- endregion
+
+-- region PROCEDURE - Prozeduren erstellen
+
+CREATE OR REPLACE PROCEDURE GruppenBeitragVerfassen
+    (nachricht IN GruppenBeitrag.nachricht % TYPE,
+     gruppe_id IN INTEGER, student_id IN INTEGER DEFAULT NULL)
+IS
+BEGIN
+    INSERT INTO GruppenBeitrag gb (id, gb.gruppe_id, gb.student_id, datum, gb.nachricht)
+    VALUES (sequence_GruppenBeitrag.nextval,
+            GruppenBeitragVerfassen.gruppe_id,
+            GruppenBeitragVerfassen.student_id, SYSDATE,
+            GruppenBeitragVerfassen.nachricht);
+END;
+
+CREATE OR REPLACE PROCEDURE GruppeLoeschen
+    (id IN INTEGER)
+IS
+BEGIN
+    DELETE FROM GruppenAnfrage ga WHERE ga.gruppe_id = id;
+    DELETE FROM GruppenEinladung ge WHERE ge.gruppe_id = id;
+    DELETE FROM GruppenDienstlink gdl WHERE gdl.gruppe_id = id;
+    DELETE FROM GruppenBeitrag gb WHERE gb.gruppe_id = GruppeLoeschen.id;
+    DELETE FROM Gruppe_Student gs WHERE gs.gruppe_id = id;
+    DELETE FROM Gruppe g WHERE g.id = GruppeLoeschen.id;
+END;
+
+CREATE OR REPLACE PROCEDURE AccountZuruecksetzen
+    (student_id IN INTEGER)
+IS
+    student_existiert INTEGER;
+BEGIN
+    SELECT COUNT(1) INTO student_existiert FROM dual;
+
+    IF student_existiert = 0 THEN
+        RAISE_APPLICATION_ERROR(
+            -20021,
+            'Student mit der ID ' || student_id || ' existiert nicht.'
+        );
+    END IF;
+
+    -- Lösche Gruppenmitgliedschaften des Nutzers.
+    -- Löst den unten definierten Trigger aus.
+    DELETE FROM Gruppe_Student gs
+    WHERE gs.student_id = AccountZuruecksetzen.student_id;
+
+    -- TODO: student_id in GruppenBeitrag zu ersteller_id umbennen.
+    UPDATE GruppenBeitrag gb
+    SET gb.student_id = NULL
+    WHERE gb.student_id = AccountZuruecksetzen.student_id;
+
+    UPDATE GruppenEinladung ge
+    SET ge.ersteller_id = NULL
+    WHERE ge.ersteller_id = AccountZuruecksetzen.student_id;
+
+    DELETE FROM GruppenAnfrage ga
+    WHERE ga.student_id = AccountZuruecksetzen.student_id;
+
+    DELETE FROM Student s
+    WHERE s.id = student_id;
+END;
+
+-- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
+-- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
+-- Nützlich für Client-seitiges welches nur für verifizierte Nutzer möglich ist.
+
+-- TODO [Prozedur] Studenten/Nutzer verifizieren.
+-- Nimmt Parameter `student_id` und `kennung` (UUID) und überprüft
+-- ob damit ein der gegebene Student verifiziert werden kann.
+-- 1) Eintrag in `StudentVerifizierung` nicht vorhanden -> ERROR
+-- 1) Ansonsten -> Eintrag entfernen + SUCCESS
+
+-- TODO [Prozedur] Einer Gruppe beitreten.
+-- Versucht einer Gruppe einen Studenten hinzuzufügen.
+-- Die folgenden 3 Fälle müssen abgedeckt werden:
+-- 1) Die Gruppe ist bereits vollständig belegt -> ERROR
+-- 2) Die Gruppe ist direkt betretbar
+--      -> Student hinzufügen + Anfrage löschen, falls vorhanden
+-- 3) Sonst -> Beitrittsanfrage erstellen (Prozedur aufrufen)
+--      + entsprechenden Wert zurückgeben
+
+-- TODO [Prozedur] Eine Gruppe verlassen.
+
+-- TODO [Prozedur] Eine Beitrittsanfrage erstellen.
+-- Erstellt für einen Studenten eine Beitrittsanfrage zu einer Gruppe.
+-- 1) Der Student ist bereits in der Gruppe -> ERROR
+-- 2) Sonst -> Beitrittsanfrage erstellen
+
+-- TODO [Prozedur] Eine Beitrittsanfrage annehmen.
+-- Nimmt eine Beitrittsanfrage eines Studenten an.
+-- 1) Die Gruppe ist vollständig belegt -> ERROR
+-- 2) Sonst -> Student hinzufügen und alle anderen
+--      Anfragen des Studenten welche zum selben Modul gehören löschen.
+--      Man möchte wahrscheinlich nicht mehrere Gruppen für ein Modul belegen.
+--      Oder doch?
+
+-- TODO [Prozedur] Eine Beitrittsanfrage ablehnen.
 
 -- endregion
 
@@ -454,134 +590,6 @@ END;
 
 -- endregion
 
--- region FUNCTION - Funktionen erstellen
-
-CREATE OR REPLACE FUNCTION StudentenName
-    (student_id INTEGER)
-RETURN Student.name % TYPE
-IS
-    name Student.name % TYPE;
-BEGIN
-    SELECT s.name INTO name
-    FROM Student s
-    WHERE s.id = student_id;
-
-    RETURN name;
-END;
-/
-
--- endregion
-
--- region PROCEDURE - Prozeduren erstellen
-
-CREATE OR REPLACE PROCEDURE GruppenBeitragVerfassen
-    (nachricht IN GruppenBeitrag.nachricht % TYPE,
-     gruppe_id IN INTEGER, student_id IN INTEGER DEFAULT NULL)
-IS
-BEGIN
-    INSERT INTO GruppenBeitrag gb (id, gb.gruppe_id, gb.student_id, datum, gb.nachricht)
-    VALUES (sequence_GruppenBeitrag.nextval,
-            GruppenBeitragVerfassen.gruppe_id,
-            GruppenBeitragVerfassen.student_id, SYSDATE,
-            GruppenBeitragVerfassen.nachricht);
-END;
-
-CREATE OR REPLACE PROCEDURE GruppeLoeschen
-    (id IN INTEGER)
-IS
-BEGIN
-    DELETE FROM GruppenAnfrage ga WHERE ga.gruppe_id = id;
-    DELETE FROM GruppenEinladung ge WHERE ge.gruppe_id = id;
-    DELETE FROM GruppenDienstlink gdl WHERE gdl.gruppe_id = id;
-    DELETE FROM GruppenBeitrag gb WHERE gb.gruppe_id = GruppeLoeschen.id;
-    DELETE FROM Gruppe_Student gs WHERE gs.gruppe_id = id;
-    DELETE FROM Gruppe g WHERE g.id = GruppeLoeschen.id;
-END;
-
-CREATE OR REPLACE PROCEDURE AccountZuruecksetzen
-    (student_id IN INTEGER)
-IS
-    student_existiert INTEGER;
-BEGIN
-    SELECT COUNT(1) INTO student_existiert FROM dual;
-
-    IF student_existiert = 0 THEN
-        RAISE_APPLICATION_ERROR(
-            -20021,
-            'Student mit der ID ' || student_id || ' existiert nicht.'
-        );
-    END IF;
-
-    -- Lösche Gruppenmitgliedschaften des Nutzers.
-    -- Löst den oben definierten Trigger aus.
-    DELETE FROM Gruppe_Student gs
-    WHERE gs.student_id = AccountZuruecksetzen.student_id;
-
-    -- TODO: student_id in GruppenBeitrag zu ersteller_id umbennen.
-    UPDATE GruppenBeitrag gb
-    SET gb.student_id = NULL
-    WHERE gb.student_id = AccountZuruecksetzen.student_id;
-
-    UPDATE GruppenEinladung ge
-    SET ge.ersteller_id = NULL
-    WHERE ge.ersteller_id = AccountZuruecksetzen.student_id;
-
-    DELETE FROM GruppenAnfrage ga
-    WHERE ga.student_id = AccountZuruecksetzen.student_id;
-
-    DELETE FROM Student s
-    WHERE s.id = student_id;
-END;
-
--- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
--- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
--- Nützlich für Client-seitiges welches nur für verifizierte Nutzer möglich ist.
-
--- TODO [Prozedur] Studenten/Nutzer verifizieren.
--- Nimmt Parameter `student_id` und `kennung` (UUID) und überprüft
--- ob damit ein der gegebene Student verifiziert werden kann.
--- 1) Eintrag in `StudentVerifizierung` nicht vorhanden -> ERROR
--- 1) Ansonsten -> Eintrag entfernen + SUCCESS
-
--- TODO [Prozedur] Einer Gruppe beitreten.
--- Versucht einer Gruppe einen Studenten hinzuzufügen.
--- Die folgenden 3 Fälle müssen abgedeckt werden:
--- 1) Die Gruppe ist bereits vollständig belegt -> ERROR
--- 2) Die Gruppe ist direkt betretbar
---      -> Student hinzufügen + Anfrage löschen, falls vorhanden
--- 3) Sonst -> Beitrittsanfrage erstellen (Prozedur aufrufen)
---      + entsprechenden Wert zurückgeben
-
--- TODO [Prozedur] Eine Gruppe verlassen.
-
--- TODO [Prozedur] Eine Beitrittsanfrage erstellen.
--- Erstellt für einen Studenten eine Beitrittsanfrage zu einer Gruppe.
--- 1) Der Student ist bereits in der Gruppe -> ERROR
--- 2) Sonst -> Beitrittsanfrage erstellen
-
--- TODO [Prozedur] Eine Beitrittsanfrage annehmen.
--- Nimmt eine Beitrittsanfrage eines Studenten an.
--- 1) Die Gruppe ist vollständig belegt -> ERROR
--- 2) Sonst -> Student hinzufügen und alle anderen
---      Anfragen des Studenten welche zum selben Modul gehören löschen.
---      Man möchte wahrscheinlich nicht mehrere Gruppen für ein Modul belegen.
---      Oder doch?
-
--- TODO [Prozedur] Eine Beitrittsanfrage ablehnen.
-
--- endregion
-
--- region SEQUENCE - Sequenzen erstellen
-
-CREATE SEQUENCE sequence_Fakultaet;
-CREATE SEQUENCE sequence_Studiengang;
-CREATE SEQUENCE sequence_Modul;
-CREATE SEQUENCE sequence_Student;
-CREATE SEQUENCE sequence_EindeutigeKennung;
-CREATE SEQUENCE sequence_Gruppe;
-CREATE SEQUENCE sequence_GruppenBeitrag;
-
--- endregion
 
 
 -- region Notizen

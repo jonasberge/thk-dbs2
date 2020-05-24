@@ -64,19 +64,17 @@ SELECT * FROM  gruppe_Comment;
 
 /* Ergebnisse vorher 
 id	gruppe_id	student_id	        datum	            nachricht	
-1	    1	        2	        2015-12-17	            hello world	
-2	    2	        1	        2020-06-17	            was lauft..	
-3	    1	        2	        2020-07-17	            wann ist naechste ..	
+
 4	    3	        2	        2019-02-01	            Termin wird ..	
 5	    3	        2	        2020-05-17	            ich bin heute nicht dabei..	
 6	    3	        2	        2020-07-17	            wann ist naechste ..	
 ..		..			.				..			        ...	
 ..		..			.				..			        ..	
   */
-/*----  mit dem PROCEDURE  lastdatecomment(gruppe ID) lässt sich das 
+/*----  mit dem PROCEDURE  LetzterBeitragVonGruppe(gruppe ID) lässt sich das 
 letze beitrag von einer gruppe  ausgeben-----
 */
-CALL lastdateComment(3);
+CALL LetzterBeitragVonGruppe(3);
 
 /*Ergebnis naher
 
@@ -98,10 +96,10 @@ SELECT * FROM studentNachricht WHERE  student_id = 2;
 /*
 id	            nachricht	                    gruppe_id	        student_id	     name	        abschluss	
 1	            hello world	                      1	                    2	        Hermann     	BSC.ING	
-3	            wann ist naechste ..	          1	                    2	        Hermann	        BSC.ING	
-4	            Termin wird ..	                  3	                    2	        Hermann	        BSC.ING	
-5	            ich bin heute nicht dabei..	      3	                    2	        Hermann	        BSC.ING	
-6	            wann ist naechste ..	          3	                    2	         Hermann	    BSC.ING	
+3	            wann ist naechste ..	            1	                    2	        Hermann	      BSC.ING	
+4	            Termin wird ..	                  3	                    2	        Hermann	      BSC.ING	
+5	            ich bin heute nicht dabei..	      3	                    2	        Hermann	      BSC.ING	
+6	            wann ist naechste ..	            3	                    2	        Hermann	      BSC.ING	
 
 */
 

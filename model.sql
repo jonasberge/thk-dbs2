@@ -414,7 +414,7 @@ BEGIN
                 'Gruppenname=' || v_name || komma ||
                 'Mitgliederanzahl=' || TO_CHAR(v_mitglieder) || komma ||
                 'Ersteller=' || v_ersteller_id || komma ||
-                'Deadline=' || v_deadline
+                'Deadline=' || NVL(TO_CHAR(v_deadline, 'dd-mm-YYYY'), 'NULL')
             );
         END LOOP;
         CLOSE gruppe_cursor;
@@ -489,33 +489,6 @@ Is
 
 END LetzterBeitragVonGruppe;
 
-/* VIEW FÜR INSTEAD OF TRIGGER */
---- alle Beitraege von dem Student in
----dem Studiengang INFORMATIK wird ausgegeben
-CREATE or replace VIEW studentNachricht AS
-SELECT gb.id, gb.nachricht, gb.gruppe_id,gb.student_id, s.name, st.abschluss
-from gruppenBeitrag gb , student s,  studiengang st
-where gb.student_id = s.id
-AND UPPER(st.name) LIKE '%INF%';
-
-/*INSTEAD OF VIEW TRIGGER*/
-create or replace TRIGGER BeitragVonStudent
-INSTEAD OF UPDATE or DELETE ON studentNachricht
-    FOR EACH ROW
-
-BEGIN
-
-    IF UPDATING('nachricht') THEN
-                 UPDATE gruppenbeitrag SET nachricht = :NEW.nachricht
-                 WHERE (id) = (:OLD.id) and student_id= :OLD.student_id;
-
-    ELSIF DELETING THEN
-            DELETE FROM gruppenbeitrag WHERE (id) = (:OLD.id)and student_id= :OLD.student_id;
-        ELSE
-            RAISE_APPLICATION_ERROR(-20007,'You cannot update or modify the view studentNachricht !.');
-        END IF;
-END;
-
 -- endregion
 
 -- region TRIGGER - Trigger erstellen
@@ -558,8 +531,8 @@ DECLARE
     anfrage_existiert INTEGER;
 BEGIN
     IF UPDATING THEN
-        IF NOT UPDATING('nachricht') THEN
-            RAISE_APPLICATION_ERROR(-20031, 'Nur die Nachricht einer Anfrage kann bearbeitet werden.');
+        IF UPDATING('gruppe_id') OR UPDATING('student_id') OR UPDATING('datum') THEN
+            RAISE_APPLICATION_ERROR(-20031, 'Nur die Nachricht einer Anfrage oder deren Status kann bearbeitet werden.');
         END IF;
         RETURN;
     END IF;
@@ -578,14 +551,6 @@ BEGIN
 
     IF bereits_in_gruppe = 1 THEN
         RAISE_APPLICATION_ERROR(-20033, 'Der anfragende Nutzer ist bereits in dieser Gruppe.');
-    END IF;
-
-    SELECT COUNT(1) INTO anfrage_existiert
-    FROM GruppenAnfrage ga
-    WHERE ga.gruppe_id = :new.gruppe_id AND ga.student_id = :new.student_id;
-
-    IF anfrage_existiert = 1 THEN
-        RAISE_APPLICATION_ERROR(-20034, 'Es existiert bereits eine Anfrage für diesen Nutzer.');
     END IF;
 
     IF :new.bestaetigt = '1' THEN
@@ -607,6 +572,7 @@ COMPOUND TRIGGER
         g_limit            Gruppe.limit % TYPE;
         g_betretbar        Gruppe.betretbar % TYPE;
         g_deadline         Gruppe.deadline % TYPE;
+        g_ersteller_id     Gruppe.ersteller_id % TYPE;
         anfrage_bestaetigt INTEGER DEFAULT 0;
 
         CURSOR cursor_Gruppe_Attribute IS
@@ -629,7 +595,12 @@ COMPOUND TRIGGER
                                          || ' nicht mehr möglich, Deadline überschritten.');
         END IF;
 
-        IF g_betretbar = '0' THEN
+        SELECT ersteller_id INTO g_ersteller_id
+        FROM Gruppe g WHERE g.id = :new.gruppe_id;
+
+        -- Eine bestätigte Anfrage muss nur vorliegen falls
+        -- der einzufügende Student nicht der Ersteller ist.
+        IF g_betretbar = '0' AND :new.student_id <> g_ersteller_id THEN
             SELECT COUNT(1) INTO anfrage_bestaetigt
             FROM GruppenAnfrage
             WHERE gruppe_id = :new.gruppe_id AND student_id = :new.student_id AND bestaetigt = '1';
@@ -677,7 +648,7 @@ END;
 
 -- TODO [Trigger] Einfügen überlappender Treffzeiten zusammenführen.
 -- Falls ein einzufügender Zeitintervall mit einem anderen überlappt
--- sollte der existierende geupdated werden anstatt einen Fehler zu werden.
+-- sollte der existierende geupdated werden anstatt einen Fehler zu werfen.
 -- -> { von: MIN(:old.von, :new.von), bis: MAX(:old.bis, :new.bis) }
 
 CREATE OR REPLACE TRIGGER trigger_GruppeVerlassen
@@ -753,6 +724,32 @@ COMPOUND TRIGGER
             END LOOP;
         END IF;
     END AFTER STATEMENT;
+END;
+
+/* VIEW FÜR INSTEAD OF TRIGGER */
+--- alle Beitraege von dem Student wird ausgegeben
+CREATE or replace VIEW studentNachricht AS
+SELECT gb.id, gb.nachricht, gb.gruppe_id,gb.student_id, s.name, st.abschluss
+from gruppenBeitrag gb , student s,  studiengang st
+where gb.student_id = s.id
+AND UPPER(st.name) LIKE '%INF%';
+
+/*INSTEAD OF VIEW TRIGGER*/
+create or replace TRIGGER BeitragVonStudent
+INSTEAD OF UPDATE or DELETE ON studentNachricht
+    FOR EACH ROW
+
+BEGIN
+
+    IF UPDATING('nachricht') THEN
+                 UPDATE gruppenbeitrag SET nachricht = :NEW.nachricht
+                 WHERE (id) = (:OLD.id) and student_id= :OLD.student_id;
+
+    ELSIF DELETING THEN
+            DELETE FROM gruppenbeitrag WHERE (id) = (:OLD.id)and student_id= :OLD.student_id;
+        ELSE
+            RAISE_APPLICATION_ERROR(-20007,'You cannot update or modify the view studentNachricht !.');
+        END IF;
 END;
 
 -- endregion

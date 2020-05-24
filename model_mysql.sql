@@ -252,6 +252,8 @@ DELIMITER ;
 
 DROP FUNCTION IF EXISTS GruppenAuflistenNachModul;
 
+-- Alternative Version der Prozedur `LerngruppenAusgeben` !
+
 DELIMITER //
 CREATE FUNCTION GruppenAuflistenNachModul
     (in_modul_id INT)
@@ -490,8 +492,6 @@ BEGIN
     CLOSE gruppe_cursor;
 END;
 
-
-
 DROP  PROCEDURE IF EXISTS LetzterBeitragVonGruppe;
 
 /* PROCEDURE FÜR LETZER BEITRAG EINER GRUPPE */
@@ -609,8 +609,11 @@ CREATE TRIGGER trigger_GruppenAnfrage_update
 BEFORE UPDATE ON GruppenAnfrage
 FOR EACH ROW
 BEGIN
-    -- TODO: überprüfe ob ausschließlich die `nachricht` geupdated wird.
-    signal sqlstate '20031' set message_text = 'Nur die Nachricht einer Anfrage kann bearbeitet werden.';
+    IF OLD.gruppe_id != NEW.gruppe_id
+           OR OLD.student_id != NEW.student_id
+           OR OLD.datum != NEW.datum THEN
+        signal sqlstate '20031' set message_text = 'Nur die Nachricht einer Anfrage oder deren Status kann bearbeitet werden.';
+    END IF;
 END //
 DELIMITER ;
 
@@ -624,6 +627,7 @@ BEGIN
     DECLARE g_limit TINYINT;
     DECLARE g_betretbar CHAR(1);
     DECLARE g_deadline DATE;
+    DECLARE g_ersteller_id INTEGER;
 
     DECLARE anzahl_mitglieder INT;
     DECLARE anfrage_bestaetigt INT;
@@ -633,25 +637,35 @@ BEGIN
     FROM Gruppe g
     WHERE g.id = NEW.gruppe_id;
 
-    SELECT COUNT(student_id)
+    SELECT COUNT(student_id) + 1 -- addiere 1, da aktueller Nutzer noch nicht eingefügt.
     INTO anzahl_mitglieder
     FROM Gruppe_Student
-    WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
+    WHERE gruppe_id = NEW.gruppe_id;
 
     -- Bei MySQL kein Mutating Table Problem bei Select
     -- Wert bleibt aber bei jeder Zeile gleich (Zustand vor dem Insert)
     -- Limit Abfrage greift nur wenn Gruppe zu Beginn schon zu viele Mitglieder hat
     -- Daher Lösung außerhalb des Triggers hierfür nötig
 
-    IF anzahl_mitglieder + 1 > g_limit THEN
-        signal sqlstate '20001' set message_text = 'Gruppe bereits vollständig.';
+    IF anzahl_mitglieder > g_limit THEN
+        set @message_text = CONCAT(
+            'Insert in Gruppe ', NEW.gruppe_id,
+            ' überschreitet mit ', anzahl_mitglieder,
+            ' Mitgliedern das Limit von ', g_limit
+        );
+        signal sqlstate '20001' set message_text = @message_text;
     END IF;
 
     IF g_deadline IS NOT NULL AND g_deadline < NOW() THEN
         signal sqlstate '20002' set message_text = 'Beitritt nicht mehr möglich, Deadline überschritten.';
     END IF;
 
-    IF g_betretbar = '0' THEN
+    SELECT ersteller_id INTO g_ersteller_id
+    FROM Gruppe g WHERE g.id = NEW.gruppe_id;
+
+    -- Eine bestätigte Anfrage muss nur vorliegen falls
+    -- der einzufügende Student nicht der Ersteller ist.
+    IF g_betretbar = '0' AND NEW.student_id <> g_ersteller_id THEN
         SELECT COUNT(*) INTO anfrage_bestaetigt
         FROM GruppenAnfrage
         WHERE
@@ -667,6 +681,11 @@ BEGIN
     -- Ggf. Vorhandende Beitrittsanfrage löschen
     DELETE FROM GruppenAnfrage
     WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
+
+    CALL GruppenBeitragVerfassen(
+        CONCAT(StudentenName(NEW.student_id), ' ist der Gruppe beigetreten.'),
+        NEW.gruppe_id, NULL
+    );
 END //
 DELIMITER ; -- delimiter resetten
 

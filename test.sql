@@ -165,7 +165,7 @@ ROLLBACK;
 
 -- region [Test] Gesuchtes Modul existiert nicht
 
--- Gibt auf der Konsole aus:
+-- [1] Gibt auf der Konsole aus:
 -- "Dieses Modul existiert nicht."
 CALL LerngruppenAusgeben(1);
 
@@ -205,7 +205,7 @@ INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
 SELECT 1, 1, 1 /* Frank */, 'Mathe-Boyz',    '1' FROM dual UNION
 SELECT 2, 1, 1 /* Frank */, 'Mathe-Boyz #2', '1' FROM dual;
 
--- [2] Gibt auf der Konsole aus:
+-- [3] Gibt auf der Konsole aus:
 -- Gruppenname=Mathe-Boyz,Mitgliederanzahl=0,Ersteller=1,Deadline=
 -- Gruppenname=Mathe-Boyz #2,Mitgliederanzahl=0,Ersteller=1,Deadline=
 CALL LerngruppenAusgeben(1);

@@ -435,6 +435,63 @@ END;
 //
 DELIMITER ;
 
+DROP PROCEDURE IF EXISTS LerngruppenAusgeben;
+
+CREATE PROCEDURE LerngruppenAusgeben(modul_id INTEGER)
+BEGIN
+    DECLARE v_name VARCHAR(64);
+    DECLARE v_ersteller_id INTEGER;
+    DECLARE v_gruppe_id INTEGER;
+    DECLARE v_mitglieder INTEGER;
+    DECLARE v_deadline DATE;
+    DECLARE komma CHAR(1) DEFAULT ',';
+
+    DECLARE modul_existiert INTEGER;
+    DECLARE done INT DEFAULT FALSE;
+
+    DECLARE gruppe_cursor CURSOR FOR
+        SELECT name, ersteller_id, deadline, id
+        FROM Gruppe;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+
+    SELECT COUNT(id) INTO modul_existiert
+    FROM Modul WHERE Modul.id = modul_id;
+
+    IF modul_existiert = 0 THEN
+        signal sqlstate '20131' set message_text = 'Dieses Modul existiert nicht.';
+    END IF;
+
+    OPEN gruppe_cursor;
+
+    this_loop: LOOP
+        FETCH gruppe_cursor
+            INTO v_name, v_ersteller_id, v_deadline, v_gruppe_id;
+
+        IF done THEN
+            IF FOUND_ROWS() = 0 THEN
+                signal sqlstate '20132' set message_text = 'Keine Lerngruppen gefunden!';
+            END IF;
+            LEAVE this_loop;
+        END IF;
+
+        SELECT COUNT(student_id) INTO v_mitglieder
+        FROM Gruppe_Student
+        WHERE Gruppe_Student.gruppe_id = v_gruppe_id;
+
+        SELECT CONCAT(
+            'Gruppenname=', v_name, komma,
+            'Mitgliederanzahl=', CAST(v_mitglieder AS CHAR), komma,
+            'Ersteller=', CAST(v_ersteller_id AS CHAR), komma,
+            'Deadline=', IFNULL(DATE_FORMAT(v_deadline, '%d.%m.%Y'), 'NULL')
+        );
+    END LOOP;
+    CLOSE gruppe_cursor;
+END;
+
+
+
 DROP  PROCEDURE IF EXISTS LetzterBeitragVonGruppe;
 
 /* PROCEDURE FÜR LETZER BEITRAG EINER GRUPPE */

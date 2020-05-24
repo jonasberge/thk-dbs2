@@ -1,10 +1,16 @@
 -- region DELETE
 
+DELETE FROM GruppenEinladung;
+DELETE FROM GruppenAnfrage;
 DELETE FROM Gruppe_Student;
 DELETE FROM GruppenBeitrag;
-DELETE FROM GruppenAnfrage;
+DELETE FROM GruppenDienstlink;
 DELETE FROM Gruppe;
+DELETE FROM StudentWiederherstellung;
+DELETE FROM StudentVerifizierung;
+DELETE FROM EindeutigeKennung;
 DELETE FROM Student;
+DELETE FROM Studiengang_Modul;
 DELETE FROM Modul;
 DELETE FROM Studiengang;
 DELETE FROM Fakultaet;
@@ -232,22 +238,14 @@ ROLLBACK;
 -- endregion
 
 -- endregion
-/*****  TESTFALL ***/
 
-delete FROM Fakultaet;
-delete FROM Studiengang;
-delete FROM Modul;
-delete FROM Student;
-delete FROM Gruppe;
-delete FROM GruppenBeitrag;
-DROP VIEW gruppe_Comment;
-
-/* Prozedur letzer Beitrag  von einer gruppe anhand von der gruppe_id  ausgeben----- */
-INSERT INTO Fakultaet (name, standort) values('Fakultaet InfoING', 'Gummersbach');
-INSERT INTO Fakultaet(name, standort) values('Fakultaet fuer Fahrzeugsysteme und Produktion', 'Koeln');
-INSERT INTO Fakultaet (name, standort) values(' Fakultaet fuer Architektur', 'Koeln');
-
+-- region Tabellen für Testzwecke mit Daten befüllen
+-- ------------------Erstellung Fakultaet-----------------------------
+INSERT INTO Fakultaet (id, name, standort) values(1, 'Fakultaet InfoING', 'Gummersbach');
+INSERT INTO Fakultaet(id, name, standort) values(2, 'Fakultaet fuer Fahrzeugsysteme und Produktion', 'Koeln');
+INSERT INTO Fakultaet (id, name, standort) values(3, ' Fakultaet fuer Architektur', 'Koeln');
 /*Erstellung Studiangang */
+
 INSERT INTO Studiengang values(1,'MASCHINENBAU',1, 'BSC.INF');
 INSERT INTO Studiengang values(2,'INFORMATIK', 2, 'BSC.ING');
 INSERT INTO Studiengang values(3,'ELEKTROTECHNIK', 3, 'BSC.ING');
@@ -260,15 +258,15 @@ INSERT INTO Modul values(3, 'Werkstoffe','Mustermann',  3);
 /* Erstellung Student */
 
 INSERT INTO Student values(1,'Tobias','help@smail.th-koeln.de',1,2,'xxxa','Lernstube',NULL,SYSDATE());
-INSERT INTO Student values(2,'Hermann','test@smail.th-koeln.de',2,4,'ppp','study',NULL,DATE_FORMAT('17/12/2008', 'DD/MM/YYYY'));
-INSERT INTO Student values(3,'Luc','luc@smail.th-koeln.de',3,2,'lll','etude',NULL,DATE_FORMAT('09/12/2008', 'DD/MM/YYYY'));
-INSERT INTO Student values(4,'Frida','bol@smail.th-koeln.de',2,4,'ppp','pass',NULL,DATE_FORMAT('17/12/2000', 'DD/MM/YYYY'));
+INSERT INTO Student values(2,'Hermann','test@smail.th-koeln.de',2,4,'ppp','study',NULL, '2008-12-17');
+INSERT INTO Student values(3,'Luc','luc@smail.th-koeln.de',3,2,'lll','etude',NULL,'2008-12-09');
+INSERT INTO Student values(4,'Frida','bol@smail.th-koeln.de',2,4,'ppp','pass',NULL,'2000-12-17');
 
 /*Erstellung Gruppe */
-INSERT INTO Gruppe values(1,1,3,'TEST',5,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
-INSERT INTO Gruppe values(2,2,2,'zudy',3,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
-INSERT INTO Gruppe values(3,3,1,'PP',3,'1','0',DATE_FORMAT('01/07/2020', 'DD/MM/YYYY'),'Koeln');
-INSERT INTO Gruppe values(4,3,1,'ALGO',2,'0','1',DATE_FORMAT('01/06/2020', 'DD/MM/YYYY'),'Koeln');
+INSERT INTO Gruppe values(1,1,3,'TEST',5,'1','1','2020-06-17','Gummersbach');
+INSERT INTO Gruppe values(2,2,2,'zudy',3,'1','1','2020-06-17','Gummersbach');
+INSERT INTO Gruppe values(3,3,1,'PP',3,'1','0','2020-07-01','Koeln');
+INSERT INTO Gruppe values(4,3,1,'ALGO',2,'0','1','2020-06-01','Koeln');
 
 /* Erstellung Gruppenbeitrag */
 
@@ -280,14 +278,19 @@ INSERT INTO GruppenBeitrag values(5,3,2,'2020-05-17','ich bin heute nicht dabei.
 INSERT INTO GruppenBeitrag values(6,3,2,'2020-07-17','wann ist naechste ..');
 
 /*Erstellung gruppeDiensLink */
-INSERT INTO GruppenDienstlink values('1','https://ggogleTrst');
-INSERT INTO GruppenDienstlink values('2','https://google.de');
-INSERT INTO GruppenDienstlink values('4','https://test.de');
+
+INSERT INTO GruppenDienstlink values(1,'https://ggogleTrst');
+INSERT INTO GruppenDienstlink values(2,'https://google.de');
+INSERT INTO GruppenDienstlink values(4,'https://test.de');
 
 /*Erstellung beitrittsAnfrage */
+
 INSERT INTO GruppenAnfrage values(1,2,SYSDATE(),'hello, ich wuerde gerne..', '1');
-INSERT INTO GruppenAnfrage values(3,1,ifnull(DATE_FORMAT('17/12/2015', 'DD/MM/YYYY'), ''),'hello, ich wuerde gerne..','1');
-INSERT INTO GruppenAnfrage values(2,3,ifnull(DATE_FORMAT('17/12/2019', 'DD/MM/YYYY'), ''),'hello, ich wuerde gerne..','0');
+INSERT INTO GruppenAnfrage values(3,1,ifnull('2015-12-17', ''),'hello, ich wuerde gerne..','1');
+INSERT INTO GruppenAnfrage values(2,3,ifnull('2019-12-17', ''),'hello, ich wuerde gerne..','0');
+COMMIT;
+
+-- endregion
 
 
 -- ----CREATE view comment zum Beispiel for gruppe mit id = 3--------------------------------

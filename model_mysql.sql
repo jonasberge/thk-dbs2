@@ -531,6 +531,8 @@ BEGIN
     SET new.datum := CURRENT_DATE; -- Stelle sicher dass das Datum aktuell ist.
 END;
 
+DROP TRIGGER IF EXISTS trigger_GruppenAnfrage;
+
 CREATE TRIGGER trigger_GruppenAnfrage
 BEFORE UPDATE ON GruppenAnfrage
 FOR EACH ROW
@@ -684,65 +686,12 @@ BEGIN
 DECLARE v_limit INTEGER;
 DECLARE v_anzahl INTEGER;
 SELECT 8 INTO v_limit FROM dual;
-SELECT COUNT(gruppe_id) INTO v_anzahl FROM GruppenDienstlink GROUP BY gruppe_id;
+SELECT COUNT(gruppe_id) INTO v_anzahl FROM GruppenDienstlink WHERE gruppe_id = NEW.gruppe_id;
 IF (v_anzahl > v_limit) THEN
 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Eine Gruppe kann nicht mehr als 5 Dienstlinks haben.';
  END IF;
  END //
 DELIMITER ;
-
--- endregion
-
--- region Tabellen für Testzwecke mit Daten befüllen
--- ------------------Erstellung Fakultaet-----------------------------
-INSERT INTO Fakultaet (name, standort) values('Fakultaet InfoING', 'Gummersbach');
-INSERT INTO Fakultaet(name, standort) values('Fakultaet fuer Fahrzeugsysteme und Produktion', 'Koeln');
-INSERT INTO Fakultaet (name, standort) values(' Fakultaet fuer Architektur', 'Koeln');
-/*Erstellung Studiangang */
-
-INSERT INTO Studiengang values(1,'MASCHINENBAU',1, 'BSC.INF');
-INSERT INTO Studiengang values(2,'INFORMATIK', 2, 'BSC.ING');
-INSERT INTO Studiengang values(3,'ELEKTROTECHNIK', 3, 'BSC.ING');
-
-/*Erstellung Modulen */
-INSERT INTO Modul values(1,  'INFORMATIK','Koenen', 1);
-INSERT INTO Modul values(2, 'INFORMATIK','EISENMANN',  2);
-INSERT INTO Modul values(3, 'Werkstoffe','Mustermann',  3);
-
-/* Erstellung Student */
-
-INSERT INTO Student values(1,'Tobias','help@smail.th-koeln.de',1,2,'xxxa','Lernstube',NULL,SYSDATE());
-INSERT INTO Student values(2,'Hermann','test@smail.th-koeln.de',2,4,'ppp','study',NULL,DATE_FORMAT('17/12/2008', 'DD/MM/YYYY'));
-INSERT INTO Student values(3,'Luc','luc@smail.th-koeln.de',3,2,'lll','etude',NULL,DATE_FORMAT('09/12/2008', 'DD/MM/YYYY'));
-INSERT INTO Student values(4,'Frida','bol@smail.th-koeln.de',2,4,'ppp','pass',NULL,DATE_FORMAT('17/12/2000', 'DD/MM/YYYY'));
-
-/*Erstellung Gruppe */
-INSERT INTO Gruppe values(1,1,3,'TEST',5,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
-INSERT INTO Gruppe values(2,2,2,'zudy',3,'1','1',DATE_FORMAT('17/06/2020', 'DD/MM/YYYY'),'Gummersbach');
-INSERT INTO Gruppe values(3,3,1,'PP',3,'1','0',DATE_FORMAT('01/07/2020', 'DD/MM/YYYY'),'Koeln');
-INSERT INTO Gruppe values(4,3,1,'ALGO',2,'0','1',DATE_FORMAT('01/06/2020', 'DD/MM/YYYY'),'Koeln');
-
-/* Erstellung Gruppenbeitrag */
-
-INSERT INTO GruppenBeitrag values(1,1,2,'2015-12-17','hello world');
-INSERT INTO GruppenBeitrag values(2,2,1,'2020-06-17','was lauft..');
-INSERT INTO GruppenBeitrag values(3,1,2,'2020-07-17' ,'wann ist naechste ..');
-INSERT INTO GruppenBeitrag values(4,3,2,'2019-02-01','Termin wird verschoben ..');
-INSERT INTO GruppenBeitrag values(5,3,2,'2020-05-17','ich bin heute nicht dabei..');
-INSERT INTO GruppenBeitrag values(6,3,2,'2020-07-17','wann ist naechste ..');
-
-/*Erstellung gruppeDiensLink */
-
-INSERT INTO GruppenDienstlink values('1','https://ggogleTrst');
-INSERT INTO GruppenDienstlink values('2','https://google.de');
-INSERT INTO GruppenDienstlink values('4','https://test.de');
-
-/*Erstellung beitrittsAnfrage */
-
-INSERT INTO GruppenAnfrage values(1,2,SYSDATE(),'hello, ich wuerde gerne..', '1');
-INSERT INTO GruppenAnfrage values(3,1,ifnull(DATE_FORMAT('17/12/2015', 'DD/MM/YYYY'), ''),'hello, ich wuerde gerne..','1');
-INSERT INTO GruppenAnfrage values(2,3,ifnull(DATE_FORMAT('17/12/2019', 'DD/MM/YYYY'), ''),'hello, ich wuerde gerne..','0');
-COMMIT;
 
 -- endregion
 

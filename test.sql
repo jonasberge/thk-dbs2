@@ -156,3 +156,60 @@ ROLLBACK;
 -- endregion
 
 -- endregion
+
+-- region [Test-Gruppe] Lerngruppen ausgeben
+
+
+-- region [Test] Gesuchtes Modul existiert nicht
+
+-- Gibt auf der Konsole aus:
+-- "Dieses Modul existiert nicht."
+CALL LerngruppenAusgeben(1);
+
+-- endregion
+
+
+-- region [Test] Keine Lerngruppe für Modul gefunden
+
+INSERT INTO Modul (ID, NAME, DOZENT, SEMESTER)
+VALUES (1, 'Mathematik 1', 'Wolfgang Konen', 1);
+
+-- [2] Gibt auf der Konsole aus:
+-- "Keine Lerngruppen gefunden!"
+CALL LerngruppenAusgeben(1);
+
+ROLLBACK;
+
+-- endregion
+
+
+-- region [Test] Keine Lerngruppe für Modul gefunden
+
+INSERT INTO Fakultaet (ID, NAME, STANDORT)
+VALUES (1, 'Informatik', 'Gummersbach');
+
+INSERT INTO Studiengang (ID, NAME, FAKULTAET_ID, ABSCHLUSS)
+VALUES (1, 'Informatik', 1, 'BSC.INF');
+
+INSERT INTO Modul (ID, NAME, DOZENT, SEMESTER)
+VALUES (1, 'Mathematik 1', 'Wolfgang Konen', 1);
+
+INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
+                     PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)
+VALUES (1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.', NULL, 1, 1);
+
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
+SELECT 1, 1, 1 /* Frank */, 'Mathe-Boyz',    '1' FROM dual UNION
+SELECT 2, 1, 1 /* Frank */, 'Mathe-Boyz #2', '1' FROM dual;
+
+-- [2] Gibt auf der Konsole aus:
+-- Gruppenname=Mathe-Boyz,Mitgliederanzahl=0,Ersteller=1,Deadline=
+-- Gruppenname=Mathe-Boyz #2,Mitgliederanzahl=0,Ersteller=1,Deadline=
+CALL LerngruppenAusgeben(1);
+
+ROLLBACK;
+
+-- endregion
+
+
+-- endregion

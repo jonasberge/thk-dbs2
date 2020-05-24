@@ -342,6 +342,63 @@ BEGIN
     WHERE s.id = student_id;
 END;
 
+CREATE OR REPLACE PROCEDURE LerngruppenAusgeben(modul_id IN INTEGER) IS
+    v_name Gruppe.name % TYPE;
+    v_ersteller_id INTEGER;
+    v_gruppe_id INTEGER;
+    v_mitglieder INTEGER;
+    v_deadline DATE;
+    no_data_found EXCEPTION;
+    no_module_found EXCEPTION;
+    komma CHAR(1) := ',';
+
+    modul_existiert INTEGER;
+BEGIN
+    SELECT COUNT(id) INTO modul_existiert
+    FROM Modul WHERE Modul.id = modul_id;
+
+    IF modul_existiert = 0 THEN
+        RAISE no_module_found;
+    END IF;
+
+    DECLARE
+        CURSOR gruppe_cursor IS
+            SELECT name, ersteller_id, deadline, id
+            FROM Gruppe;
+    BEGIN
+        OPEN gruppe_cursor;
+        LOOP
+            FETCH gruppe_cursor
+                INTO v_name, v_ersteller_id, v_deadline, v_gruppe_id;
+
+            IF gruppe_cursor % NOTFOUND THEN
+                IF gruppe_cursor % ROWCOUNT = 0 THEN
+                    RAISE no_data_found;
+                END IF;
+                EXIT;
+            END IF;
+
+            SELECT COUNT(student_id) INTO v_mitglieder
+            FROM Gruppe_Student
+            WHERE Gruppe_Student.gruppe_id = v_gruppe_id;
+
+            DBMS_OUTPUT.PUT_LINE(
+                'Gruppenname=' || v_name || komma ||
+                'Mitgliederanzahl=' || TO_CHAR(v_mitglieder) || komma ||
+                'Ersteller=' || v_ersteller_id || komma ||
+                'Deadline=' || v_deadline
+            );
+        END LOOP;
+        CLOSE gruppe_cursor;
+    END;
+
+EXCEPTION
+    WHEN no_data_found THEN
+        DBMS_OUTPUT.PUT_LINE('Keine Lerngruppen gefunden!');
+    WHEN no_module_found THEN
+        DBMS_OUTPUT.PUT_LINE('Dieses Modul existiert nicht');
+END;
+
 -- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
 -- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
 -- Nützlich für Client-seitiges welches nur für verifizierte Nutzer möglich ist.

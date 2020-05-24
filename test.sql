@@ -216,17 +216,13 @@ ROLLBACK;
 
 
 -- endregion
+
+
 /*****  TESTFALL 2***/
 
 /* Prozedur letzer Beitrag  von einer gruppe anhand von der gruppe_id  ausgeben----- */
 
-delete fakultaet;
-delete studiengang;
-delete modul;
-delete student;
-delete gruppe;
-delete gruppenBeitrag;
-DROP VIEW grupp_Comment;
+DROP VIEW gruppe_Comment;
 
 
 --------------------Erstellung Fakultaet-----------------------------
@@ -283,7 +279,7 @@ ID   gruppe Id		student Id		DATE		COMMENT
 /*----  mit dem PROCEDURE  LetzterBeitragVonGruppe(gruppe ID) lässt sich das
 letze beitrag von einer gruppe  ausgeben-----
 */
-EXECUTE LetzterBeitragVonGruppe(3);
+CALL LetzterBeitragVonGruppe(3);
 
 /*Ergebnis naher
 

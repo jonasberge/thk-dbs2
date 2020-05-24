@@ -313,11 +313,11 @@ DELIMITER ;
 
 DELIMITER ;
 
-DROP  PROCEDURE IF EXISTS lastdateComment;
+DROP  PROCEDURE IF EXISTS LetzterBeitragVonGruppe;
 
 delimiter //
 
-CREATE PROCEDURE lastdateComment(v_gruppe_id INT )  
+CREATE PROCEDURE LetzterBeitragVonGruppe(v_gruppe_id INT )  
 
 BEGIN
     DECLARE r_comment VARCHAR(250);

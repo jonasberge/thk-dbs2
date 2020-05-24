@@ -481,7 +481,7 @@ END;
 
 /* PROCEDURE FÜR LETZER BEITRAG EINER GRUPPE */
 
-create or replace PROCEDURE lastdateComment(v_gruppe_id gruppe.id%TYPE) 
+CREATE OR REPLACE  PROCEDURE LetzterBeitragVonGruppe(v_gruppe_id gruppe.id%TYPE) 
 Is
 
     type rp_type is record (v_ref_name gruppe.name%TYPE,
@@ -539,7 +539,7 @@ Is
             raise_application_error(-20243,'es gibt keine Beiträge');
         END IF;   
 
-END lastdateComment;
+END LetzterBeitragVonGruppe;
 
 /* VIEW FÜR INSTEAD OF TRIGGER */
 --- alle Beitraege von dem Student in 
@@ -551,7 +551,7 @@ where gb.student_id = s.id
 AND UPPER(st.name) LIKE '%INF%';
 
 /*INSTEAD OF VIEW TRIGGER*/
-create or replace TRIGGER COMMENT_DETAILS_VW_DML
+create or replace TRIGGER BeitragVonStudent
 INSTEAD OF UPDATE or DELETE ON studentNachricht
     FOR EACH ROW
 

@@ -549,6 +549,7 @@ DELIMITER ;
 
 DROP TRIGGER IF EXISTS trigger_GruppenAnfrage;
 
+DELIMITER //
 CREATE TRIGGER trigger_GruppenAnfrage
 BEFORE INSERT ON GruppenAnfrage
 FOR EACH ROW
@@ -586,17 +587,20 @@ BEGIN
     END IF;
 
     SET new.datum := CURRENT_DATE; -- Stelle sicher dass das Datum aktuell ist.
-END;
+END //
+DELIMITER ;
 
 DROP TRIGGER IF EXISTS trigger_GruppenAnfrage;
 
+DELIMITER //
 CREATE TRIGGER trigger_GruppenAnfrage
 BEFORE UPDATE ON GruppenAnfrage
 FOR EACH ROW
 BEGIN
     -- TODO: überprüfe ob ausschließlich die `nachricht` geupdated wird.
     signal sqlstate '20031' set message_text = 'Nur die Nachricht einer Anfrage kann bearbeitet werden.';
-END;
+END //
+DELIMITER ;
 
 DROP TRIGGER IF EXISTS trigger_GruppeBeitreten;
 

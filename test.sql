@@ -1,10 +1,16 @@
 -- region DELETE
 
+DELETE FROM GruppenEinladung;
+DELETE FROM GruppenAnfrage;
 DELETE FROM Gruppe_Student;
 DELETE FROM GruppenBeitrag;
-DELETE FROM GruppenAnfrage;
+DELETE FROM GruppenDienstlink;
 DELETE FROM Gruppe;
+DELETE FROM StudentWiederherstellung;
+DELETE FROM StudentVerifizierung;
+DELETE FROM EindeutigeKennung;
 DELETE FROM Student;
+DELETE FROM Studiengang_Modul;
 DELETE FROM Modul;
 DELETE FROM Studiengang;
 DELETE FROM Fakultaet;

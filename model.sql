@@ -399,6 +399,99 @@ EXCEPTION
         DBMS_OUTPUT.PUT_LINE('Dieses Modul existiert nicht');
 END;
 
+/* PROCEDURE FÜR LETZER BEITRAG EINER GRUPPE */
+
+CREATE OR REPLACE  PROCEDURE LetzterBeitragVonGruppe(v_gruppe_id gruppe.id%TYPE)
+Is
+
+    type rp_type is record (v_ref_name gruppe.name%TYPE,
+                         v_refp_comment gruppenbeitrag.nachricht%TYPE,
+                         v_ref_date gruppenbeitrag.datum%TYPE);
+    type comment_list is table of rp_type index by PLS_INTEGER;
+    r_comment comment_list;
+    v_start rp_type;
+    v_result VARCHAR2(250);
+    nr PLS_INTEGER;
+    type refp_comment is ref cursor return rp_type;
+    rc_temps refp_comment;
+
+    BEGIN
+        --Die Anzahl von den Beiteagen zu einer gegebenen
+        --Gruppe in der Variable nr speicher
+        SELECT COUNT(gruppe_id) into nr
+        FROM gruppenBeitrag where gruppe_id = v_gruppe_id;
+
+         ---Wenn die anzahl der Beitraegen großer null ist, dann der Cursor öffnen
+        IF nr >0 then
+            open rc_temps for  SELECT e.name, b.Nachricht, b.datum
+            FROM gruppe e INNER JOIN gruppenBeitrag b ON
+            e.id = b.gruppe_id  where e.id = v_gruppe_id;
+
+            ---for schleife um das Datum, das Kommentar und
+            ---Gruppen Namen in einer Liste zu speichern
+            for j in 1..nr loop
+						fetch rc_temps into r_comment(j);
+						exit when rc_temps%notfound;
+                    end loop;
+            close rc_temps;
+
+            --- startsdatum um die liste duchtzlaufen und das maximum abspeichern
+            v_start :=r_comment(1);
+
+            -- start der Schleife in der Liste und das
+            -- letze Datum zu der Gruppe wird v_start abgelegt
+                for i in 1..nr loop
+                    if(v_start.v_ref_date <= r_comment(i).v_ref_date) then
+                    v_start :=r_comment(i);
+                    v_result := 'letzer Beitrag von deiner Gruppe '
+                    || v_start.v_ref_name || ' '|| 'ist :'||v_start.v_refp_comment;
+                    end if;
+                end loop;
+
+            --- Output von datum, nachricht und gruppename
+            dbms_output.put_line( 'Deine Gruppe ist sehr aktiv und hier ist das letze Beitrag' );
+            dbms_output.put_line( 'DATUM'||'  '||'  '||'GruppeName'||'  '||'  '||'Nachricht' );
+            dbms_output.put_line( v_start.v_ref_date||'  '||'  '|| v_start.v_ref_name
+            ||'  '||'  '||v_start.v_refp_comment );
+
+        --- Eine Fehlermeldung ausgeben, wenn keine Beitrege der Gruppe vorhanden ist.
+        ELSE
+            raise_application_error(-20243,'es gibt keine Beiträge');
+        END IF;
+
+END LetzterBeitragVonGruppe;
+
+/* VIEW FÜR INSTEAD OF TRIGGER */
+--- alle Beitraege von dem Student in
+---dem Studiengang INFORMATIK wird ausgegeben
+CREATE or replace VIEW studentNachricht AS
+SELECT gb.id, gb.nachricht, gb.gruppe_id,gb.student_id, s.name, st.abschluss
+from gruppenBeitrag gb , student s,  studiengang st
+where gb.student_id = s.id
+AND UPPER(st.name) LIKE '%INF%';
+
+/*INSTEAD OF VIEW TRIGGER*/
+create or replace TRIGGER BeitragVonStudent
+INSTEAD OF UPDATE or DELETE ON studentNachricht
+    FOR EACH ROW
+
+BEGIN
+
+    IF UPDATING('nachricht') THEN
+                 UPDATE gruppenbeitrag SET nachricht = :NEW.nachricht
+                 WHERE (id) = (:OLD.id) and student_id= :OLD.student_id;
+
+    ELSIF DELETING THEN
+            DELETE FROM gruppenbeitrag WHERE (id) = (:OLD.id)and student_id= :OLD.student_id;
+        ELSE
+            RAISE_APPLICATION_ERROR(-20007,'You cannot update or modify the view studentNachricht !.');
+        END IF;
+END;
+
+
+
+
+
 -- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
 -- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
 -- Nützlich für Client-seitiges welches nur für verifizierte Nutzer möglich ist.

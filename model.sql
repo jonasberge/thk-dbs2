@@ -127,15 +127,15 @@ CREATE TABLE StudentWiederherstellung (
 
 CREATE TABLE Gruppe (
     id           INTEGER PRIMARY KEY,
-    modul_id     INTEGER             NOT NULL,
-    ersteller_id INTEGER             NOT NULL,
-    name         VARCHAR2(64)        NOT NULL,
-    limit        INTEGER DEFAULT 8,
-    oeffentlich  CHAR(1) DEFAULT '1' NOT NULL,
-    betretbar    CHAR(1) DEFAULT '0' NOT NULL,
-    deadline     DATE,
+    modul_id     INTEGER                  NOT NULL,
+    ersteller_id INTEGER                  NOT NULL,
+    name         VARCHAR2(64)             NOT NULL,
+    limit        INTEGER      DEFAULT 8,
+    oeffentlich  CHAR(1)      DEFAULT '1' NOT NULL,
+    betretbar    CHAR(1)      DEFAULT '0' NOT NULL,
+    deadline     DATE         DEFAULT NULL,
     -- FIXME: Ort als Geokoordinaten abspeichern.
-    ort          VARCHAR2(64),
+    ort          VARCHAR2(64) DEFAULT NULL,
     FOREIGN KEY (modul_id)
         REFERENCES Modul (id),
     FOREIGN KEY (ersteller_id)
@@ -147,7 +147,7 @@ COMMENT ON COLUMN Gruppe.betretbar
 
 ALTER TABLE Gruppe
     ADD CONSTRAINT check_Gruppe_limit
-        CHECK (limit > 0);
+        CHECK (limit > 1);
 
 ALTER TABLE Gruppe -- TODO: Kann man das irgendwie schöner abbilden?
     ADD CONSTRAINT check_Gruppe_oeffentlich
@@ -279,9 +279,37 @@ BEGIN
 END;
 /
 
+CREATE OR REPLACE FUNCTION IstVerifiziert
+    (in_student_id IN INTEGER)
+RETURN INTEGER
+IS
+    verifizierung_im_gange INTEGER;
+BEGIN
+    SELECT COUNT(1) INTO verifizierung_im_gange
+    FROM StudentVerifizierung sv
+    WHERE sv.student_id = in_student_id;
+
+    RETURN ABS(1 - verifizierung_im_gange);
+END;
+/
+
 -- endregion
 
 -- region PROCEDURE - Prozeduren erstellen
+
+CREATE OR REPLACE PROCEDURE Verifizieren
+    (in_kennung IN EindeutigeKennung.kennung % TYPE)
+IS
+BEGIN
+    DELETE FROM StudentVerifizierung WHERE kennung_id = (
+        SELECT kennung_id FROM EindeutigeKennung ek
+        WHERE ek.kennung = in_kennung
+    );
+
+    IF SQL % ROWCOUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20081, 'Verifizierung konnte nicht durchgeführt werden.');
+    END IF;
+END;
 
 CREATE OR REPLACE PROCEDURE GruppenBeitragVerfassen
     (nachricht IN GruppenBeitrag.nachricht % TYPE,

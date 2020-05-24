@@ -547,6 +547,18 @@ DELIMITER ;
 
 -- region TRIGGER - Trigger erstellen
 
+DROP TRIGGER IF EXISTS trigger_Gruppe;
+
+DELIMITER //
+CREATE TRIGGER trigger_Gruppe
+AFTER INSERT ON Gruppe
+FOR EACH ROW
+BEGIN
+    INSERT INTO Gruppe_Student (gruppe_id, student_id, beitrittsdatum)
+    VALUES (NEW.id, NEW.ersteller_id, CURRENT_DATE);
+END //
+DELIMITER ;
+
 DROP TRIGGER IF EXISTS trigger_GruppenAnfrage;
 
 DELIMITER //

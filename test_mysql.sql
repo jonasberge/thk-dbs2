@@ -158,3 +158,77 @@ ROLLBACK;
 -- endregion
 
 -- endregion
+
+-- region [Test] Funktion GruppenAuflistenNachModul
+
+-- region [setup]
+INSERT INTO Fakultaet (ID, NAME, STANDORT)
+VALUES (1, 'Informatik', 'Gummersbach');
+
+INSERT INTO Studiengang (ID, NAME, FAKULTAET_ID, ABSCHLUSS)
+VALUES (1, 'Informatik', 1, 'BSC.INF');
+
+INSERT INTO Modul (ID, NAME, DOZENT, SEMESTER)
+VALUES (1, 'Mathematik 1', 'Wolfgang Konen', 1);
+
+INSERT INTO Modul (ID, NAME, DOZENT, SEMESTER)
+VALUES (2, 'AP2', 'Christian Kohls', 2);
+
+INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
+                     PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)
+    SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual UNION
+    SELECT 2, 'Peter', 'peter@th-koeln.de', 'h', 'Ich bin Technologie-begeistert.',  NULL, 1, 1 FROM dual UNION
+    SELECT 3, 'Hans',   'hans@th-koeln.de', 'h', 'Tortillas sind meine Spezialität', NULL, 1, 1 FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, BETRETBAR, ERSTELLER_ID, NAME)
+    SELECT 1, 1, '1', 1 /* Frank */, 'Mathe-Boyz'    FROM dual UNION
+    SELECT 2, 1, '0', 1 /* Frank */, 'Mathe-Boyz #2' FROM dual UNION
+    SELECT 3, 1, '1', 2 /* Peter */, 'Math Rivals'   FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, BETRETBAR, ERSTELLER_ID, NAME)
+    SELECT 4, 2, '1', 1 /* Frank */, 'AP2-Masters'    FROM dual UNION
+    SELECT 5, 2, '0', 1 /* Frank */, 'AP2-Masters #2' FROM dual UNION
+    SELECT 6, 2, '1', 2 /* Peter */, 'AP2 Crew'   FROM dual;
+
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+    SELECT 1, 1, CURRENT_DATE FROM dual UNION
+    SELECT 2, 1, CURRENT_DATE FROM dual UNION
+    SELECT 3, 2, CURRENT_DATE FROM dual;
+
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+    SELECT 2, 2 /* Peter */, STR_TO_DATE('17.05.2020', '%d.%m.%Y') FROM dual UNION
+    SELECT 2, 3 /* Hans  */, STR_TO_DATE('18.05.2020', '%d.%m.%Y') FROM dual;
+
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+VALUES (3, 1, CURRENT_DATE);
+
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+    SELECT 4, 1, CURRENT_DATE FROM dual UNION
+    SELECT 5, 1, CURRENT_DATE FROM dual UNION
+    SELECT 6, 2, CURRENT_DATE FROM dual;
+
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+    SELECT 5, 2 /* Peter */, STR_TO_DATE('17.05.2020', '%d.%m.%Y') FROM dual UNION
+    SELECT 4, 3 /* Hans  */, STR_TO_DATE('18.05.2020', '%d.%m.%Y') FROM dual;
+
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+    SELECT 4, 2 /* Peter */, STR_TO_DATE('17.05.2020', '%d.%m.%Y') FROM dual UNION
+    SELECT 5, 3 /* Hans  */, STR_TO_DATE('18.05.2020', '%d.%m.%Y') FROM dual UNION
+    SELECT 6, 1 /* Peter */, STR_TO_DATE('17.05.2020', '%d.%m.%Y') FROM dual;
+
+-- endregion
+
+-- Liste alle Mathe1-Gruppen auf
+SELECT GruppenAuflistenNachModul(1) FROM DUAL;
+-- Liste alle AP2-Gruppen auf
+SELECT GruppenAuflistenNachModul(2) FROM DUAL;
+-- Zähle AP2-Gruppen
+SELECT JSON_LENGTH(GruppenAuflistenNachModul(2)) FROM DUAL;
+
+-- region [teardown]
+
+ROLLBACK;
+
+-- endregion
+
+-- endregion

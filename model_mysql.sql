@@ -355,6 +355,8 @@ END;
 //
 DELIMITER ;
 
+DROP FUNCTION IF EXISTS GruppenAuflistenNachModul;
+
 DELIMITER //
 CREATE FUNCTION GruppenAuflistenNachModul
     (in_modul_id INT)
@@ -446,13 +448,13 @@ BEGIN
                             'name', gruppe_name,
                             'oeffentlich', oeffentlich_bool,
                             'betretbar', betretbar_bool,
-                            'deadline', deadline, -- cursor gibt null zurück
+                            'deadline', deadline,
                             'ersteller', JSON_OBJECT (
                                 'id', ersteller_id,
                                 'name', ersteller_name
                             ),
                             'limit', gruppe_limit,
-                            'mitgliederzahl', mitglieder -- wird nicht berechnet
+                            'mitgliederzahl', mitglieder
                         )
                     )
                 INTO ergebnis

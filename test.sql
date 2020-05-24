@@ -19,9 +19,7 @@ DROP VIEW view_test_AccountZuruecksetzen;
 
 -- endregion
 
--- region [Test] Account zurücksetzen
-
--- region [setup]
+-- region [Test-Gruppe] Account zurücksetzen
 
 CREATE VIEW view_test_AccountZuruecksetzen AS
 SELECT g.name as gruppe, listagg(
@@ -30,11 +28,137 @@ SELECT g.name as gruppe, listagg(
 ) WITHIN GROUP (
     ORDER BY CASE WHEN s.id = g.ersteller_id THEN 0 ELSE 1 END, s.id
 ) as teilnehmer
-FROM Gruppe_Student gs
-INNER JOIN Gruppe g ON g.id = gs.gruppe_id
-INNER JOIN Student s ON s.id = gs.student_id
+FROM Gruppe g
+LEFT JOIN Gruppe_Student gs ON g.id = gs.gruppe_id
+LEFT JOIN Student s ON s.id = gs.student_id
 GROUP BY g.id, g.name
 ORDER BY g.id;
+
+INSERT INTO Fakultaet (ID, NAME, STANDORT)
+VALUES (1, 'Informatik', 'Gummersbach');
+
+INSERT INTO Studiengang (ID, NAME, FAKULTAET_ID, ABSCHLUSS)
+VALUES (1, 'Informatik', 1, 'BSC.INF');
+
+INSERT INTO Modul (ID, NAME, DOZENT, SEMESTER)
+VALUES (1, 'Mathematik 1', 'Wolfgang Konen', 1);
+
+COMMIT;
+
+
+-- Mit * markierte Studenten in der Spalte `TEILNEHMER` sind Gruppenleiter.
+
+
+-- region [Test] Gruppe löschen, falls einziger Teilnehmer
+
+INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
+                     PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)
+SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
+VALUES (1, 1, 1 /* Frank */, 'Mathe-Boyz', '1');
+
+-- Mit * markierte Studenten in der Spalte `TEILNEHMER` sind Gruppenleiter.
+
+/* [Vorher]
+    GRUPPE         TEILNEHMER
+    Mathe-Boyz     Frank*
+*/
+SELECT * FROM view_test_AccountZuruecksetzen;
+
+CALL AccountZuruecksetzen(1 /* Frank */);
+
+/* [Nachher]
+    GRUPPE         TEILNEHMER
+*/
+SELECT * FROM view_test_AccountZuruecksetzen;
+
+ROLLBACK;
+
+-- endregion
+
+
+-- region [Test] Nächsten Teilnehmer zum Gruppenleiter ernennen.
+
+INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
+                     PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)
+SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual UNION
+SELECT 2, 'Peter', 'peter@th-koeln.de', 'h', 'Ich bin Technologie-begeistert.',  NULL, 1, 1 FROM dual UNION
+SELECT 3, 'Hans',   'hans@th-koeln.de', 'h', 'Tortillas sind meine Spezialität', NULL, 1, 1 FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
+VALUES (1, 1, 1 /* Frank */, 'Mathe-Boyz #2', '1');
+
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+SELECT 1, 2 /* Peter */, TO_DATE('17.05.2020', 'dd.mm.yyyy') FROM dual UNION
+SELECT 1, 3 /* Hans  */, TO_DATE('18.05.2020', 'dd.mm.yyyy') FROM dual;
+
+/* [Vorher]
+    GRUPPE         TEILNEHMER
+    Mathe-Boyz #2  Frank*, Peter, Hans
+*/
+SELECT * FROM view_test_AccountZuruecksetzen;
+
+CALL AccountZuruecksetzen(1 /* Frank */);
+
+/* [Nachher]
+    GRUPPE         TEILNEHMER
+    Mathe-Boyz #2  Peter*, Hans
+*/
+SELECT * FROM view_test_AccountZuruecksetzen;
+
+ROLLBACK;
+
+-- endregion
+
+
+-- region [Test] Account aus Gruppen löschen welchen dieser beigetreten ist.
+
+INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
+                     PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)
+SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual UNION
+SELECT 2, 'Peter', 'peter@th-koeln.de', 'h', 'Ich bin Technologie-begeistert.',  NULL, 1, 1 FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
+VALUES (3, 1, 2 /* Peter */, 'Math Rivals', '1');
+
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+VALUES (3, 1 /* Frank */, SYSDATE);
+
+/* [Vorher]
+    GRUPPE         TEILNEHMER
+    Math Rivals    Peter*, Frank
+*/
+SELECT * FROM view_test_AccountZuruecksetzen;
+
+CALL AccountZuruecksetzen(1 /* Frank */);
+
+/* [Nachher]
+    GRUPPE         TEILNEHMER
+    Math Rivals    Peter*
+*/
+SELECT * FROM view_test_AccountZuruecksetzen;
+
+ROLLBACK;
+
+-- endregion
+
+
+DELETE FROM Modul;
+DELETE FROM Studiengang;
+DELETE FROM Fakultaet;
+DROP VIEW view_test_AccountZuruecksetzen;
+
+-- endregion [Test-Gruppe] Account zurücksetzen
+
+
+
+
+
+
+-- region [Test] Account zurücksetzen
+
+-- region [setup]
 
 INSERT INTO Fakultaet (ID, NAME, STANDORT)
 VALUES (1, 'Informatik', 'Gummersbach');

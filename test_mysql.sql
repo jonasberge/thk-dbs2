@@ -17,9 +17,8 @@ DELETE FROM Fakultaet;
 
 -- endregion
 
--- region [Test] Account zurücksetzen
 
--- region [setup]
+-- region [Test-Gruppe] Account zurücksetzen
 
 CREATE VIEW view_test_AccountZuruecksetzen AS
 SELECT g.name as gruppe, group_concat(
@@ -42,6 +41,43 @@ VALUES (1, 'Informatik', 1, 'BSC.INF');
 INSERT INTO Modul (ID, NAME, DOZENT, SEMESTER)
 VALUES (1, 'Mathematik 1', 'Wolfgang Konen', 1);
 
+COMMIT;
+
+
+-- Mit * markierte Studenten in der Spalte `TEILNEHMER` sind Gruppenleiter.
+
+
+-- region [Test] Gruppe löschen, falls einziger Teilnehmer
+
+INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
+                     PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)
+SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
+VALUES (1, 1, 1 /* Frank */, 'Mathe-Boyz', '1');
+
+-- Mit * markierte Studenten in der Spalte `TEILNEHMER` sind Gruppenleiter.
+
+/* [Vorher]
+    GRUPPE         TEILNEHMER
+    Mathe-Boyz     Frank*
+*/
+SELECT * FROM view_test_AccountZuruecksetzen;
+
+CALL AccountZuruecksetzen(1 /* Frank */);
+
+/* [Nachher]
+    GRUPPE         TEILNEHMER
+*/
+SELECT * FROM view_test_AccountZuruecksetzen;
+
+ROLLBACK;
+
+-- endregion
+
+
+-- region [Test] Nächsten Teilnehmer zum Gruppenleiter ernennen.
+
 INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
                      PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)
 SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual UNION
@@ -49,31 +85,15 @@ SELECT 2, 'Peter', 'peter@th-koeln.de', 'h', 'Ich bin Technologie-begeistert.', 
 SELECT 3, 'Hans',   'hans@th-koeln.de', 'h', 'Tortillas sind meine Spezialität', NULL, 1, 1 FROM dual;
 
 INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
-SELECT 1, 1, 1 /* Frank */, 'Mathe-Boyz',    '1' FROM dual UNION
-SELECT 2, 1, 1 /* Frank */, 'Mathe-Boyz #2', '1' FROM dual UNION
-SELECT 3, 1, 2 /* Peter */, 'Math Rivals',   '1' FROM dual;
-
--- TODO: Gruppenerstellung in Prozedur auslagern.
--- Die Ersteller einer Gruppe werden auch in Gruppe_Student eingefügt.
-INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
-SELECT 1, 1, CURRENT_DATE FROM dual UNION
-SELECT 2, 1, CURRENT_DATE FROM dual UNION
-SELECT 3, 2, CURRENT_DATE FROM dual;
+VALUES (1, 1, 1 /* Frank */, 'Mathe-Boyz #2', '1');
 
 INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
-SELECT 2, 2 /* Peter */, STR_TO_DATE('17.05.2020', '%d.%m.%Y') FROM dual UNION
-SELECT 2, 3 /* Hans  */, STR_TO_DATE('18.05.2020', '%d.%m.%Y') FROM dual;
-
-INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
-VALUES (3, 1, CURRENT_DATE);
-
--- endregion
+SELECT 1, 2 /* Peter */, STR_TO_DATE('17.05.2020', '%d.%m.%Y') FROM dual UNION
+SELECT 1, 3 /* Hans  */, STR_TO_DATE('18.05.2020', '%d.%m.%Y') FROM dual;
 
 /* [Vorher]
     GRUPPE         TEILNEHMER
-    Mathe-Boyz     Frank*
     Mathe-Boyz #2  Frank*, Peter, Hans
-    Math Rivals    Peter*, Frank
 */
 SELECT * FROM view_test_AccountZuruecksetzen;
 
@@ -82,18 +102,56 @@ CALL AccountZuruecksetzen(1 /* Frank */);
 /* [Nachher]
     GRUPPE         TEILNEHMER
     Mathe-Boyz #2  Peter*, Hans
+*/
+SELECT * FROM view_test_AccountZuruecksetzen;
+
+ROLLBACK;
+
+-- endregion
+
+
+-- region [Test] Account aus Gruppen löschen welchen dieser beigetreten ist.
+
+INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
+                     PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)
+SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual UNION
+SELECT 2, 'Peter', 'peter@th-koeln.de', 'h', 'Ich bin Technologie-begeistert.',  NULL, 1, 1 FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
+VALUES (3, 1, 2 /* Peter */, 'Math Rivals', '1');
+
+INSERT INTO Gruppe_Student (GRUPPE_ID, STUDENT_ID, BEITRITTSDATUM)
+VALUES (3, 1 /* Frank */, CURRENT_DATE);
+
+/* [Vorher]
+    GRUPPE         TEILNEHMER
+    Math Rivals    Peter*, Frank
+*/
+SELECT * FROM view_test_AccountZuruecksetzen;
+
+CALL AccountZuruecksetzen(1 /* Frank */);
+
+/* [Nachher]
+    GRUPPE         TEILNEHMER
     Math Rivals    Peter*
 */
 SELECT * FROM view_test_AccountZuruecksetzen;
 
--- region [teardown]
-
 ROLLBACK;
+
+-- endregion
+
+
+DELETE FROM Modul;
+DELETE FROM Studiengang;
+DELETE FROM Fakultaet;
 DROP VIEW view_test_AccountZuruecksetzen;
 
--- endregion
+-- endregion [Test-Gruppe] Account zurücksetzen
 
--- endregion
+
+
+
 
 -- region [Test] Trigger GruppeBeitritt
 
@@ -201,8 +259,6 @@ VALUES (1, 'Informatik', 1, 'BSC.INF');
 
 INSERT INTO Modul (ID, NAME, DOZENT, SEMESTER)
 VALUES (1, 'Mathematik 1', 'Wolfgang Konen', 1);
-
--- TODO: after insert on Student: insert on Student_Gruppe - id der gruppe und ersteller.
 
 INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
                      PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)

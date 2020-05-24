@@ -150,7 +150,97 @@ DROP VIEW view_test_AccountZuruecksetzen;
 -- endregion [Test-Gruppe] Account zurücksetzen
 
 
+-- region [Test-Gruppe] Trigger GruppenAnfrage
 
+INSERT INTO Fakultaet (ID, NAME, STANDORT)
+VALUES (1, 'Informatik', 'Gummersbach');
+
+INSERT INTO Studiengang (ID, NAME, FAKULTAET_ID, ABSCHLUSS)
+VALUES (1, 'Informatik', 1, 'BSC.INF');
+
+INSERT INTO Modul (ID, NAME, DOZENT, SEMESTER)
+VALUES (1, 'Mathematik 1', 'Wolfgang Konen', 1);
+
+INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
+                     PROFIL_BESCHREIBUNG, PROFIL_BILD, STUDIENGANG_ID, SEMESTER)
+SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.',              NULL, 1, 1 FROM dual UNION
+SELECT 2, 'Peter', 'peter@th-koeln.de', 'h', 'Ich bin Technologie-begeistert.',  NULL, 1, 1 FROM dual UNION
+SELECT 3, 'Hans',   'hans@th-koeln.de', 'h', 'Tortillas sind meine Spezialität', NULL, 1, 1 FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
+VALUES (1, 1, 1 /* Frank */, 'Mathe-Boyz', '1');
+
+COMMIT;
+
+
+-- region [Test] Anfrage ist nicht erforderlich
+
+-- Wirft Fehler:
+-- "Diese Gruppe erfordert keine Anfrage."
+INSERT INTO GruppenAnfrage (GRUPPE_ID, STUDENT_ID)
+VALUES (1, 1);
+
+-- endregion
+
+
+UPDATE Gruppe g
+SET g.BETRETBAR = '0'
+WHERE g.id = 1;
+
+INSERT INTO GruppenAnfrage (GRUPPE_ID, STUDENT_ID)
+VALUES (1, 2 /* Peter */);
+
+
+-- region [Test] Der anfragende Nutzer ist bereits in der Gruppe.
+
+-- Wirft Fehler:
+-- "Der anfragende Nutzer ist bereits in dieser Gruppe."
+INSERT INTO GruppenAnfrage (GRUPPE_ID, STUDENT_ID)
+VALUES (1, 1);
+
+-- endregion
+
+
+-- region [Test] Es existiert bereits eine Anfrage für diesen Nutzer.
+
+-- Wirft Fehler:
+-- "Es existiert bereits eine Anfrage für diesen Nutzer."
+INSERT INTO GruppenAnfrage (GRUPPE_ID, STUDENT_ID)
+VALUES (1, 2);
+
+-- endregion
+
+
+-- region [Test] Eine neue Gruppenanfrage muss unbestätigt sein.
+
+-- Wirft Fehler:
+-- "Eine neue Gruppenanfrage muss unbestätigt sein."
+INSERT INTO GruppenAnfrage (GRUPPE_ID, STUDENT_ID, BESTAETIGT)
+VALUES (1, 3, '1');
+
+-- endregion
+
+
+-- region [Test] Nur die Nachricht einer Anfrage kann bearbeitet werden.
+
+-- Wirft Fehler:
+-- "Nur die Nachricht einer Anfrage kann bearbeitet werden."
+UPDATE GruppenAnfrage ga
+SET ga.student_id = 3
+WHERE ga.GRUPPE_ID = 1 AND ga.student_id = 2;
+
+-- endregion
+
+
+DELETE FROM Gruppe_Student;
+DELETE FROM GruppenAnfrage;
+DELETE FROM Gruppe;
+DELETE FROM Student;
+DELETE FROM Modul;
+DELETE FROM Studiengang;
+DELETE FROM Fakultaet;
+
+-- endregion
 
 
 -- region [Test] Trigger GruppeBeitritt

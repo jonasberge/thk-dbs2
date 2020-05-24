@@ -559,10 +559,10 @@ BEGIN
 END //
 DELIMITER ;
 
-DROP TRIGGER IF EXISTS trigger_GruppenAnfrage;
+DROP TRIGGER IF EXISTS trigger_GruppenAnfrage_insert;
 
 DELIMITER //
-CREATE TRIGGER trigger_GruppenAnfrage
+CREATE TRIGGER trigger_GruppenAnfrage_insert
 BEFORE INSERT ON GruppenAnfrage
 FOR EACH ROW
 BEGIN
@@ -602,10 +602,10 @@ BEGIN
 END //
 DELIMITER ;
 
-DROP TRIGGER IF EXISTS trigger_GruppenAnfrage;
+DROP TRIGGER IF EXISTS trigger_GruppenAnfrage_update;
 
 DELIMITER //
-CREATE TRIGGER trigger_GruppenAnfrage
+CREATE TRIGGER trigger_GruppenAnfrage_update
 BEFORE UPDATE ON GruppenAnfrage
 FOR EACH ROW
 BEGIN

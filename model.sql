@@ -516,46 +516,6 @@ BEGIN
         END IF;
 END;
 
-
-
-
-
--- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
--- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
--- Nützlich für Client-seitiges welches nur für verifizierte Nutzer möglich ist.
-
--- TODO [Prozedur] Studenten/Nutzer verifizieren.
--- Nimmt Parameter `student_id` und `kennung` (UUID) und überprüft
--- ob damit ein der gegebene Student verifiziert werden kann.
--- 1) Eintrag in `StudentVerifizierung` nicht vorhanden -> ERROR
--- 1) Ansonsten -> Eintrag entfernen + SUCCESS
-
--- TODO [Prozedur] Einer Gruppe beitreten.
--- Versucht einer Gruppe einen Studenten hinzuzufügen.
--- Die folgenden 3 Fälle müssen abgedeckt werden:
--- 1) Die Gruppe ist bereits vollständig belegt -> ERROR
--- 2) Die Gruppe ist direkt betretbar
---      -> Student hinzufügen + Anfrage löschen, falls vorhanden
--- 3) Sonst -> Beitrittsanfrage erstellen (Prozedur aufrufen)
---      + entsprechenden Wert zurückgeben
-
--- TODO [Prozedur] Eine Gruppe verlassen.
-
--- TODO [Prozedur] Eine Beitrittsanfrage erstellen.
--- Erstellt für einen Studenten eine Beitrittsanfrage zu einer Gruppe.
--- 1) Der Student ist bereits in der Gruppe -> ERROR
--- 2) Sonst -> Beitrittsanfrage erstellen
-
--- TODO [Prozedur] Eine Beitrittsanfrage annehmen.
--- Nimmt eine Beitrittsanfrage eines Studenten an.
--- 1) Die Gruppe ist vollständig belegt -> ERROR
--- 2) Sonst -> Student hinzufügen und alle anderen
---      Anfragen des Studenten welche zum selben Modul gehören löschen.
---      Man möchte wahrscheinlich nicht mehrere Gruppen für ein Modul belegen.
---      Oder doch?
-
--- TODO [Prozedur] Eine Beitrittsanfrage ablehnen.
-
 -- endregion
 
 -- region TRIGGER - Trigger erstellen
@@ -767,8 +727,6 @@ COMPOUND TRIGGER
 END;
 
 -- endregion
-
-
 
 -- region Notizen
 /*

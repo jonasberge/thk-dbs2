@@ -234,12 +234,12 @@ ROLLBACK;
 -- endregion
 /*****  TESTFALL ***/
 
-delete fakultaet;
-delete studiengang;
-delete modul;
-delete student;
-delete gruppe;
-delete gruppenBeitrag;
+delete FROM Fakultaet;
+delete FROM Studiengang;
+delete FROM Modul;
+delete FROM Student;
+delete FROM Gruppe;
+delete FROM GruppenBeitrag;
 DROP VIEW gruppe_Comment;
 
 /* Prozedur letzer Beitrag  von einer gruppe anhand von der gruppe_id  ausgeben----- */
@@ -280,9 +280,9 @@ INSERT INTO GruppenBeitrag values(5,3,2,'2020-05-17','ich bin heute nicht dabei.
 INSERT INTO GruppenBeitrag values(6,3,2,'2020-07-17','wann ist naechste ..');
 
 /*Erstellung gruppeDiensLink */
-INSERT INTO GruppenDienstLink values('1','https://ggogleTrst');
-INSERT INTO GruppenDienstLink values('2','https://google.de');
-INSERT INTO GruppenDienstLink values('4','https://test.de');
+INSERT INTO GruppenDienstlink values('1','https://ggogleTrst');
+INSERT INTO GruppenDienstlink values('2','https://google.de');
+INSERT INTO GruppenDienstlink values('4','https://test.de');
 
 /*Erstellung beitrittsAnfrage */
 INSERT INTO GruppenAnfrage values(1,2,SYSDATE(),'hello, ich wuerde gerne..', '1');
@@ -290,9 +290,9 @@ INSERT INTO GruppenAnfrage values(3,1,ifnull(DATE_FORMAT('17/12/2015', 'DD/MM/YY
 INSERT INTO GruppenAnfrage values(2,3,ifnull(DATE_FORMAT('17/12/2019', 'DD/MM/YYYY'), ''),'hello, ich wuerde gerne..','0');
 
 
-------CREATE view vomment zum Beispiel for gruppe mit id = 3--------------------------------
+-- ----CREATE view comment zum Beispiel for gruppe mit id = 3--------------------------------
 CREATE OR REPLACE VIEW  gruppe_Comment AS
-SELECT * FROM gruppenBeitrag gb where gb.gruppe_id = 3;
+SELECT * FROM GruppenBeitrag gb where gb.gruppe_id = 3;
 
 SELECT * FROM  gruppe_Comment;
 
@@ -317,10 +317,10 @@ DATUM    GruppeName    Nachricht
 
 */
 
---- Complexe View erstellen : alle beitragen von den Studenten mit Studiengang INFORMATIK
+-- - Complexe View erstellen : alle beitragen von den Studenten mit Studiengang INFORMATIK
 CREATE or replace VIEW studentNachricht AS
 SELECT gb.id, gb.nachricht, gb.gruppe_id,gb.student_id, s.name, st.abschluss
-from gruppenBeitrag gb , student s,  studiengang st
+from GruppenBeitrag gb , Student s,  Studiengang st
 where gb.student_id = s.id
 AND UPPER(st.name) LIKE '%INF%';
 

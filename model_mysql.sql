@@ -15,6 +15,12 @@ DROP TABLE Modul;
 DROP TABLE Studiengang;
 DROP TABLE Fakultaet;
 
+DROP PROCEDURE IF EXISTS AccountZuruecksetzen;
+DROP PROCEDURE IF EXISTS GruppeLoeschen;
+DROP PROCEDURE IF EXISTS GruppenBeitragVerfassen;
+
+DROP FUNCTION IF EXISTS StudentenName;
+
 -- endregion
 
 -- region TABLE - Tabellen erstellen
@@ -210,127 +216,16 @@ CREATE TABLE GruppenEinladung (
         REFERENCES Student (id)
 );
 
--- region TRIGGER - Trigger erstellen
+-- endregion
 
-DROP TRIGGER IF EXISTS trigger_GruppeBeitreten;
+-- region VIEW - Ansichten erstellen
 
-DELIMITER // -- delimiter setzen
-CREATE TRIGGER trigger_GruppeBeitreten
-BEFORE INSERT ON Gruppe_Student
-FOR EACH ROW
-BEGIN
-    DECLARE g_limit TINYINT;
-    DECLARE g_betretbar CHAR(1);
-    DECLARE g_deadline DATE;
-
-    DECLARE anzahl_mitglieder INT;
-    DECLARE anfrage_bestaetigt INT;
-
-    SELECT `limit`, betretbar, deadline
-    INTO g_limit, g_betretbar, g_deadline
-    FROM Gruppe g
-    WHERE g.id = NEW.gruppe_id;
-
-    SELECT COUNT(student_id)
-    INTO anzahl_mitglieder
-    FROM Gruppe_Student
-    WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
-
-    -- Bei MySQL kein Mutating Table Problem bei Select
-    -- Wert bleibt aber bei jeder Zeile gleich (Zustand vor dem Insert)
-    -- Limit Abfrage greift nur wenn Gruppe zu Beginn schon zu viele Mitglieder hat
-    -- Daher Lösung außerhalb des Triggers hierfür nötig
-
-    IF anzahl_mitglieder + 1 > g_limit THEN
-        signal sqlstate '20001' set message_text = 'Gruppe bereits vollständig.';
-    END IF;
-
-    IF g_deadline IS NOT NULL AND g_deadline < NOW() THEN
-        signal sqlstate '20002' set message_text = 'Beitritt nicht mehr möglich, Deadline überschritten.';
-    END IF;
-
-    IF g_betretbar = '0' THEN
-        SELECT COUNT(*) INTO anfrage_bestaetigt
-        FROM GruppenAnfrage
-        WHERE
-            gruppe_id = NEW.gruppe_id AND
-            student_id = NEW.student_id AND
-            bestaetigt = '1';
-
-        IF anfrage_bestaetigt <> 1 THEN
-            signal sqlstate '20003' set message_text = 'Beitritt nur bei bestätigter Anfrage möglich.';
-        END IF;
-    END IF;
-
-    -- Ggf. Vorhandende Beitrittsanfrage löschen
-    DELETE FROM GruppenAnfrage
-    WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
-END //
-DELIMITER ; -- delimiter resetten
-
-DROP TRIGGER IF EXISTS trigger_GruppeVerlassen;
-
-DELIMITER // -- delimiter setzen
-CREATE TRIGGER trigger_GruppeVerlassen
-AFTER DELETE ON Gruppe_Student
-FOR EACH ROW
-this_trigger: BEGIN
-    DECLARE anzahl_mitglieder INT;
-    DECLARE ersteller_id INT;
-    DECLARE ist_ersteller_mitglied INT;
-    DECLARE neuer_besitzer_id INT;
-
-    CALL GruppenBeitragVerfassen(concat(StudentenName(old.student_id),
-        ' hat die Gruppe verlassen.'), old.gruppe_id, NULL);
-
-    SELECT COUNT(gs.student_id) INTO anzahl_mitglieder
-    FROM Gruppe_Student gs
-    WHERE gs.gruppe_id = old.gruppe_id;
-
-    IF anzahl_mitglieder = 0 THEN
-        -- Es ist kein Mitglied mehr übrig, die Gruppe kann gelöscht werden.
-        DELETE FROM GruppenAnfrage WHERE gruppe_id = old.gruppe_id;
-        DELETE FROM GruppenEinladung WHERE gruppe_id = old.gruppe_id;
-        DELETE FROM GruppenDienstlink WHERE gruppe_id = old.gruppe_id;
-        DELETE FROM GruppenBeitrag WHERE gruppe_id = old.gruppe_id;
-        -- Die folgende Zeile kann nicht in MySQL ausgeführt werden.
-        -- Da sie in diesem Kontext auch nichts tut ist es in Ordnung sie wegzulassen.
-     -- DELETE FROM Gruppe_Student WHERE gruppe_id = old.gruppe_id;
-        DELETE FROM Gruppe WHERE id = old.gruppe_id;
-        LEAVE this_trigger;
-    END IF;
-
-    SELECT g.ersteller_id INTO ersteller_id
-    FROM Gruppe g WHERE g.id = old.gruppe_id;
-
-    SELECT COUNT(gs.student_id) INTO ist_ersteller_mitglied
-    FROM Gruppe_Student gs
-    WHERE gs.gruppe_id = old.gruppe_id
-        AND gs.student_id = ersteller_id;
-
-    IF ist_ersteller_mitglied = 1 THEN
-        LEAVE this_trigger;
-    END IF;
-
-    -- Der Ersteller befindet sich nicht mehr in der Gruppe.
-
-    -- Unter den noch vorhandenen Nutzern wird derjenige zum
-    -- neuen Besitzer erwählt, welcher zuerst beigetreten ist.
-
-    SELECT gs.student_id INTO neuer_besitzer_id
-    FROM Gruppe_Student gs
-    WHERE gs.gruppe_id = old.gruppe_id
-    ORDER BY beitrittsdatum
-    LIMIT 1;
-
-    UPDATE Gruppe g
-    SET g.ersteller_id = neuer_besitzer_id
-    WHERE g.id = old.gruppe_id;
-
-    CALL GruppenBeitragVerfassen(concat(StudentenName(neuer_besitzer_id),
-        ' wurde zum neuen Gruppenleiter erwählt.'), old.gruppe_id, NULL);
-END //
-DELIMITER ; -- delimiter resetten
+/* INSTEAD OF VIEW TRigger VIEW */
+CREATE or replace VIEW studentNachricht AS
+SELECT gb.id, gb.nachricht, gb.gruppe_id,gb.student_id, s.name, st.abschluss
+from GruppenBeitrag gb , Student s,  Studiengang st
+where gb.student_id = s.id
+AND UPPER(st.name) LIKE '%INF%';
 
 -- endregion
 
@@ -540,16 +435,217 @@ END;
 //
 DELIMITER ;
 
+DROP  PROCEDURE IF EXISTS LetzterBeitragVonGruppe;
+
+/* PROCEDURE FÜR LETZER BEITRAG EINER GRUPPE */
+delimiter //
+CREATE PROCEDURE LetzterBeitragVonGruppe(v_gruppe_id INT )
+BEGIN
+    DECLARE r_comment VARCHAR(250);
+    DECLARE v_name VARCHAR(250);
+    DECLARE v_start date;
+    DECLARE v_date date;
+    DECLARE nr INT;
+    DECLARE finished INT DEFAULT 0;
+
+    DECLARE kundenCursor CURSOR FOR  SELECT  (b.datum ),e.name, b.Nachricht
+    FROM  GruppenBeitrag b INNER JOIN Gruppe e  ON  b.gruppe_id = e.id
+    where b.gruppe_id = v_gruppe_id ORDER BY b.datum DESC LIMIT 1;
+
+    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET finished=1;
+
+    /*Eine temporaere Table erzeugen um die Werten abzuspeichern */
+    DROP TEMPORARY TABLE IF EXISTS TempTable;
+	CREATE TEMPORARY TABLE TempTable( v_date DATE,v_name VARCHAR(250),r_comment VARCHAR(250));
+
+    /*--Die Anzahl von den Beiteagen zu einer gegebenen
+    --Gruppe in der Variable nr speicher*/
+    SELECT COUNT(gruppe_id) into nr
+	FROM GruppenBeitrag where gruppe_id = v_gruppe_id;
+
+    /*---Wenn die anzahl der Beitraegen großer null ist, dann der Cursor öffnen*/
+    IF (nr> 0) THEN
+
+    OPEN kundenCursor;
+  	forloop:LOOP
+		FETCH kundenCursor INTO v_date,v_name ,r_comment ;
+			IF finished THEN
+				LEAVE forLoop;
+			END IF;
+        INSERT INTO TempTable (v_date,v_name ,r_comment)
+		VALUES ( v_date,v_name ,r_comment);
+	END LOOP forLoop;
+	SELECT * from TempTable; /*---Ergebnis aus der Tabelle ausgeben*/
+    CLOSE kundenCursor;
+
+/*---Eine Fehlermeldung ausgeben, wenn keine Beitrege der Gruppe vorhanden ist.*/
+    ELSE
+	    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Es liegen keine Beitraegen von deiner Gruppe vor' ;
+    END IF;
+
+END //
+DELIMITER ;
+
 -- endregion
 
--- region Notizen
+-- region TRIGGER - Trigger erstellen
 
--- TODO [Tabelle] Treffzeiten nach Wochentag.
+DROP TRIGGER IF EXISTS trigger_GruppeBeitreten;
+
+DELIMITER // -- delimiter setzen
+CREATE TRIGGER trigger_GruppeBeitreten
+BEFORE INSERT ON Gruppe_Student
+FOR EACH ROW
+BEGIN
+    DECLARE g_limit TINYINT;
+    DECLARE g_betretbar CHAR(1);
+    DECLARE g_deadline DATE;
+
+    DECLARE anzahl_mitglieder INT;
+    DECLARE anfrage_bestaetigt INT;
+
+    SELECT `limit`, betretbar, deadline
+    INTO g_limit, g_betretbar, g_deadline
+    FROM Gruppe g
+    WHERE g.id = NEW.gruppe_id;
+
+    SELECT COUNT(student_id)
+    INTO anzahl_mitglieder
+    FROM Gruppe_Student
+    WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
+
+    -- Bei MySQL kein Mutating Table Problem bei Select
+    -- Wert bleibt aber bei jeder Zeile gleich (Zustand vor dem Insert)
+    -- Limit Abfrage greift nur wenn Gruppe zu Beginn schon zu viele Mitglieder hat
+    -- Daher Lösung außerhalb des Triggers hierfür nötig
+
+    IF anzahl_mitglieder + 1 > g_limit THEN
+        signal sqlstate '20001' set message_text = 'Gruppe bereits vollständig.';
+    END IF;
+
+    IF g_deadline IS NOT NULL AND g_deadline < NOW() THEN
+        signal sqlstate '20002' set message_text = 'Beitritt nicht mehr möglich, Deadline überschritten.';
+    END IF;
+
+    IF g_betretbar = '0' THEN
+        SELECT COUNT(*) INTO anfrage_bestaetigt
+        FROM GruppenAnfrage
+        WHERE
+            gruppe_id = NEW.gruppe_id AND
+            student_id = NEW.student_id AND
+            bestaetigt = '1';
+
+        IF anfrage_bestaetigt <> 1 THEN
+            signal sqlstate '20003' set message_text = 'Beitritt nur bei bestätigter Anfrage möglich.';
+        END IF;
+    END IF;
+
+    -- Ggf. Vorhandende Beitrittsanfrage löschen
+    DELETE FROM GruppenAnfrage
+    WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
+END //
+DELIMITER ; -- delimiter resetten
+
+DROP TRIGGER IF EXISTS trigger_GruppeVerlassen;
+
+DELIMITER // -- delimiter setzen
+CREATE TRIGGER trigger_GruppeVerlassen
+AFTER DELETE ON Gruppe_Student
+FOR EACH ROW
+this_trigger: BEGIN
+    DECLARE anzahl_mitglieder INT;
+    DECLARE ersteller_id INT;
+    DECLARE ist_ersteller_mitglied INT;
+    DECLARE neuer_besitzer_id INT;
+
+    CALL GruppenBeitragVerfassen(concat(StudentenName(old.student_id),
+        ' hat die Gruppe verlassen.'), old.gruppe_id, NULL);
+
+    SELECT COUNT(gs.student_id) INTO anzahl_mitglieder
+    FROM Gruppe_Student gs
+    WHERE gs.gruppe_id = old.gruppe_id;
+
+    IF anzahl_mitglieder = 0 THEN
+        -- Es ist kein Mitglied mehr übrig, die Gruppe kann gelöscht werden.
+        DELETE FROM GruppenAnfrage WHERE gruppe_id = old.gruppe_id;
+        DELETE FROM GruppenEinladung WHERE gruppe_id = old.gruppe_id;
+        DELETE FROM GruppenDienstlink WHERE gruppe_id = old.gruppe_id;
+        DELETE FROM GruppenBeitrag WHERE gruppe_id = old.gruppe_id;
+        -- Die folgende Zeile kann nicht in MySQL ausgeführt werden.
+        -- Da sie in diesem Kontext auch nichts tut ist es in Ordnung sie wegzulassen.
+     -- DELETE FROM Gruppe_Student WHERE gruppe_id = old.gruppe_id;
+        DELETE FROM Gruppe WHERE id = old.gruppe_id;
+        LEAVE this_trigger;
+    END IF;
+
+    SELECT g.ersteller_id INTO ersteller_id
+    FROM Gruppe g WHERE g.id = old.gruppe_id;
+
+    SELECT COUNT(gs.student_id) INTO ist_ersteller_mitglied
+    FROM Gruppe_Student gs
+    WHERE gs.gruppe_id = old.gruppe_id
+        AND gs.student_id = ersteller_id;
+
+    IF ist_ersteller_mitglied = 1 THEN
+        LEAVE this_trigger;
+    END IF;
+
+    -- Der Ersteller befindet sich nicht mehr in der Gruppe.
+
+    -- Unter den noch vorhandenen Nutzern wird derjenige zum
+    -- neuen Besitzer erwählt, welcher zuerst beigetreten ist.
+
+    SELECT gs.student_id INTO neuer_besitzer_id
+    FROM Gruppe_Student gs
+    WHERE gs.gruppe_id = old.gruppe_id
+    ORDER BY beitrittsdatum
+    LIMIT 1;
+
+    UPDATE Gruppe g
+    SET g.ersteller_id = neuer_besitzer_id
+    WHERE g.id = old.gruppe_id;
+
+    CALL GruppenBeitragVerfassen(concat(StudentenName(neuer_besitzer_id),
+        ' wurde zum neuen Gruppenleiter erwählt.'), old.gruppe_id, NULL);
+END //
+DELIMITER ; -- delimiter resetten
+
+/* ein trigger für deadline um eine Gruppe beizutreten   */
+DROP TRIGGER IF EXISTS trigger_Gruppe_deadline;
+ DELIMITER //
+CREATE TRIGGER trigger_Gruppe_deadline
+BEFORE INSERT ON Gruppe
+FOR EACH ROW
+BEGIN
+    IF (NEW.deadline < SYSDATE()) THEN
+     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Deadline darf nicht in der Vergangenheit liegen.';
+     END IF;
+END//
+
+DELIMITER ;
+
+/* ein trigger, der Gruppendienslink limitiert   */
+DROP TRIGGER IF EXISTS trigger_GruppenDienstLink_limitiert ;
+
+DELIMITER //
+CREATE TRIGGER trigger_GruppenDienstLink_limitiert
+BEFORE INSERT ON GruppenDienstlink
+FOR EACH ROW
+BEGIN
+DECLARE v_limit INTEGER;
+DECLARE v_anzahl INTEGER;
+SELECT 8 INTO v_limit FROM dual;
+SELECT COUNT(gruppe_id) INTO v_anzahl FROM GruppenDienstlink GROUP BY gruppe_id;
+IF (v_anzahl > v_limit) THEN
+SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Eine Gruppe kann nicht mehr als 5 Dienstlinks haben.';
+ END IF;
+ END //
+DELIMITER ;
 
 -- endregion
 
---region Tabellen mit Daten befuellen zum Testzwecken-------------
---------------------Erstellung Fakultaet-----------------------------
+-- region Tabellen für Testzwecke mit Daten befüllen
+-- ------------------Erstellung Fakultaet-----------------------------
 INSERT INTO Fakultaet (name, standort) values('Fakultaet InfoING', 'Gummersbach');
 INSERT INTO Fakultaet(name, standort) values('Fakultaet fuer Fahrzeugsysteme und Produktion', 'Koeln');
 INSERT INTO Fakultaet (name, standort) values(' Fakultaet fuer Architektur', 'Koeln');
@@ -586,14 +682,11 @@ INSERT INTO GruppenBeitrag values(4,3,2,'2019-02-01','Termin wird verschoben ..'
 INSERT INTO GruppenBeitrag values(5,3,2,'2020-05-17','ich bin heute nicht dabei..');
 INSERT INTO GruppenBeitrag values(6,3,2,'2020-07-17','wann ist naechste ..');
 
-
-
 /*Erstellung gruppeDiensLink */
 
-INSERT INTO GruppenDienstLink values('1','https://ggogleTrst');
-INSERT INTO GruppenDienstLink values('2','https://google.de');
-INSERT INTO GruppenDienstLink values('4','https://test.de');
-
+INSERT INTO GruppenDienstlink values('1','https://ggogleTrst');
+INSERT INTO GruppenDienstlink values('2','https://google.de');
+INSERT INTO GruppenDienstlink values('4','https://test.de');
 
 /*Erstellung beitrittsAnfrage */
 
@@ -602,106 +695,9 @@ INSERT INTO GruppenAnfrage values(3,1,ifnull(DATE_FORMAT('17/12/2015', 'DD/MM/YY
 INSERT INTO GruppenAnfrage values(2,3,ifnull(DATE_FORMAT('17/12/2019', 'DD/MM/YYYY'), ''),'hello, ich wuerde gerne..','0');
 COMMIT;
 
+-- endregion
 
--- region TRIGGER
-
-/* ein trigger für deadline um eine Gruppe beizutreten   */
-DROP TRIGGER IF EXISTS trigger_Gruppe_deadline;
- DELIMITER //
-CREATE TRIGGER trigger_Gruppe_deadline
-BEFORE INSERT ON Gruppe
-FOR EACH ROW
-BEGIN
-    IF (NEW.deadline < SYSDATE()) THEN
-     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Deadline darf nicht in der Vergangenheit liegen.';
-     END IF;
-END//
-
-DELIMITER ;
-
-
-/* ein trigger, der Gruppendienslink limitiert   */
-DROP TRIGGER IF EXISTS trigger_GruppenDienstLink_limitiert ;
-
-DELIMITER //
-CREATE TRIGGER trigger_GruppenDienstLink_limitiert
-BEFORE INSERT ON GruppenDienstLink
-FOR EACH ROW
-BEGIN
-DECLARE v_limit INTEGER;
-DECLARE v_anzahl INTEGER;
-SELECT 8 INTO v_limit FROM dual;
-SELECT COUNT(gruppe_id) INTO v_anzahl FROM GruppenDienstLink GROUP BY gruppe_id;
-IF (v_anzahl > v_limit) THEN
-SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Eine Gruppe kann nicht mehr als 5 Dienstlinks haben.';
- END IF;
- END //
-DELIMITER ;
-
-/* PROCEDURE FÜR LETZER BEITRAG EINER GRUPPE */
-
-DELIMITER ;
-
-DROP  PROCEDURE IF EXISTS LetzterBeitragVonGruppe;
-
-delimiter //
-
-CREATE PROCEDURE LetzterBeitragVonGruppe(v_gruppe_id INT )
-
-BEGIN
-    DECLARE r_comment VARCHAR(250);
-    DECLARE v_name VARCHAR(250);
-    DECLARE v_start date;
-    DECLARE v_date date;
-    DECLARE nr INT;
-    DECLARE finished INT DEFAULT 0;
-
-    DECLARE kundenCursor CURSOR FOR  SELECT  (b.datum ),e.name, b.Nachricht
-    FROM  gruppenBeitrag b INNER JOIN gruppe e  ON  b.gruppe_id = e.id
-    where b.gruppe_id = v_gruppe_id ORDER BY b.datum DESC LIMIT 1;
-
-    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET finished=1;
-
-    /*Eine temporaere Table erzeugen um die Werten abzuspeichern */
-    DROP TEMPORARY TABLE IF EXISTS TempTable;
-	CREATE TEMPORARY TABLE TempTable( v_date DATE,v_name VARCHAR(250),r_comment VARCHAR(250));
-
-    /*--Die Anzahl von den Beiteagen zu einer gegebenen
-    --Gruppe in der Variable nr speicher*/
-    SELECT COUNT(gruppe_id) into nr
-	FROM gruppenBeitrag where gruppe_id = v_gruppe_id;
-
-    /*---Wenn die anzahl der Beitraegen großer null ist, dann der Cursor öffnen*/
-    IF (nr> 0) THEN
-
-    OPEN kundenCursor;
-  	forloop:LOOP
-		FETCH kundenCursor INTO v_date,v_name ,r_comment ;
-			IF finished THEN
-				LEAVE forLoop;
-			END IF;
-        INSERT INTO TempTable (v_date,v_name ,r_comment)
-		VALUES ( v_date,v_name ,r_comment);
-	END LOOP forLoop;
-	SELECT * from TempTable; /*---Ergebnis aus der Tabelle ausgeben*/
-    CLOSE kundenCursor;
-
-/*---Eine Fehlermeldung ausgeben, wenn keine Beitrege der Gruppe vorhanden ist.*/
-    ELSE
-	    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Es liegen keine Beitraegen von deiner Gruppe vor' ;
-    END IF;
-
-END //
-DELIMITER ;
-
-/* INSTEAD OF VIEW TRigger VIEW */
-CREATE or replace VIEW studentNachricht AS
-SELECT gb.id, gb.nachricht, gb.gruppe_id,gb.student_id, s.name, st.abschluss
-from gruppenBeitrag gb , student s,  studiengang st
-where gb.student_id = s.id
-AND UPPER(st.name) LIKE '%INF%';
-
-
+-- region Notizen
 
 -- TODO Anstatt eines Triggers welcher das Datum des erstellten Beitrags
 --      überprüft, wäre eine Prozedur welche einen Beitrag erstellt sinnvoller.
@@ -728,11 +724,6 @@ END;
 -- Falls ein einzufügender Zeitintervall mit einem anderen überlappt
 -- sollte der existierende geupdated werden anstatt einen Fehler zu werden.
 -- -> { von: MIN(:old.von, :new.von), bis: MAX(:old.bis, :new.bis) }
-
--- endregion
-
-
--- region PROCEDURE
 
 -- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
 -- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
@@ -770,23 +761,8 @@ END;
 
 -- TODO [Prozedur] Eine Beitrittsanfrage ablehnen.
 
--- endregion
+-- TODO [Tabelle] Treffzeiten nach Wochentag.
 
-
--- region SEQUENCE
-
-CREATE SEQUENCE sequence_Fakultaet;
-CREATE SEQUENCE sequence_Studiengang;
-CREATE SEQUENCE sequence_Modul;
-CREATE SEQUENCE sequence_Student;
-CREATE SEQUENCE sequence_EindeutigeKennung;
-CREATE SEQUENCE sequence_Gruppe;
-CREATE SEQUENCE sequence_GruppenBeitrag;
-
--- endregion
-
-
--- region Notizen
 /*
 
 CREATE OR REPLACE TYPE DienstLink_t AS OBJECT (

@@ -183,7 +183,7 @@ ROLLBACK;
 -- endregion
 
 
--- region [Test] Keine Lerngruppe für Modul gefunden
+-- region [Test] Ausgabe gefundener Lerngruppen
 
 INSERT INTO Fakultaet (ID, NAME, STANDORT)
 VALUES (1, 'Informatik', 'Gummersbach');

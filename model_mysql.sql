@@ -23,6 +23,8 @@ DROP FUNCTION IF EXISTS StudentenName;
 
 -- endregion
 
+SET max_sp_recursion_depth = 7;
+
 -- region TABLE - Tabellen erstellen
 
 CREATE TABLE Fakultaet (
@@ -118,14 +120,14 @@ CREATE TABLE StudentWiederherstellung (
 
 CREATE TABLE Gruppe (
     id           INT PRIMARY KEY AUTO_INCREMENT,
-    modul_id     INT             NOT NULL,
-    ersteller_id INT             NOT NULL,
-    name         VARCHAR(64)        NOT NULL,
-    `limit`        TINYINT DEFAULT 8,
+    modul_id     INT                 NOT NULL,
+    ersteller_id INT                 NOT NULL,
+    name         VARCHAR(64)         NOT NULL,
+    `limit`      TINYINT DEFAULT 8,
     oeffentlich  CHAR(1) DEFAULT '1' NOT NULL,
     betretbar    CHAR(1) DEFAULT '0' NOT NULL
         COMMENT 'Studenten können der Gruppe beitreten ohne erst vom Ersteller angenommen werden zu müssen.',
-    deadline     DATE,
+    deadline     DATETIME,
     -- FIXME: Ort als Geokoordinaten abspeichern.
     ort          VARCHAR(64),
     FOREIGN KEY (modul_id)
@@ -155,15 +157,20 @@ CREATE TABLE GruppenDienstlink (
 
 CREATE TABLE GruppenBeitrag (
     id         INT PRIMARY KEY AUTO_INCREMENT,
-    gruppe_id  INT        NOT NULL,
+    gruppe_id  INT                    NOT NULL,
     student_id INT, -- Darf NULL sein, falls Nutzer gelöscht wurde.
-    datum      DATE           NOT NULL,
-    nachricht  VARCHAR(1024) NOT NULL,
+    datum      DATETIME               NOT NULL,
+    nachricht  VARCHAR(1024)          NOT NULL,
+    typ        CHAR(8) DEFAULT 'USER' NOT NULL,
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
     FOREIGN KEY (student_id)
         REFERENCES Student (id)
 );
+
+ALTER TABLE GruppenBeitrag
+    ADD CONSTRAINT check_GruppenBeitrag_typ
+        CHECK (typ IN ('USER', 'SYSTEM', 'BIRTHDAY'));
 
 CREATE INDEX index_GruppenBeitrag_gruppe_datum
     ON GruppenBeitrag (gruppe_id, datum);
@@ -174,9 +181,9 @@ ALTER TABLE GruppenBeitrag
 
 -- Studenten die in einer Gruppe sind.
 CREATE TABLE Gruppe_Student (
-    gruppe_id      INT NOT NULL,
-    student_id     INT NOT NULL,
-    beitrittsdatum DATE    NOT NULL,
+    gruppe_id      INT      NOT NULL,
+    student_id     INT      NOT NULL,
+    beitrittsdatum DATETIME NOT NULL,
     PRIMARY KEY (gruppe_id, student_id),
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
@@ -186,11 +193,11 @@ CREATE TABLE Gruppe_Student (
 
 -- Anfrage eines Studenten um einer Gruppe beizutreten.
 CREATE TABLE GruppenAnfrage (
-    gruppe_id  INT                               NOT NULL,
-    student_id INT                               NOT NULL,
-    datum      DATE         DEFAULT CURRENT_DATE NOT NULL,
+    gruppe_id  INT                        NOT NULL,
+    student_id INT                        NOT NULL,
+    datum      DATETIME     DEFAULT NOW() NOT NULL,
     nachricht  VARCHAR(256) DEFAULT NULL,
-    bestaetigt CHAR(1)      DEFAULT '0'          NOT NULL,
+    bestaetigt CHAR(1)      DEFAULT '0'   NOT NULL,
     PRIMARY KEY (gruppe_id, student_id),
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
@@ -207,7 +214,7 @@ CREATE TABLE GruppenEinladung (
     kennung_id   INT PRIMARY KEY,
     gruppe_id    INT NOT NULL,
     ersteller_id INT, -- Darf NULL sein, falls Nutzer gelöscht wurde.
-    gueltig_bis  DATE,
+    gueltig_bis  DATETIME,
     FOREIGN KEY (kennung_id)
         REFERENCES EindeutigeKennung (id),
     FOREIGN KEY (gruppe_id)
@@ -371,14 +378,60 @@ DELIMITER ;
 
 DROP PROCEDURE IF EXISTS GruppenBeitragVerfassen;
 
+-- Der Trigger zum Senden einer Geburtstags-Nachricht wurde hier in die Prozedur verlegt.
+
 DELIMITER //
 CREATE PROCEDURE GruppenBeitragVerfassen
-    (IN in_nachricht VARCHAR(1024),
-     IN in_gruppe_id INTEGER,
+    (IN in_typ        CHAR(8),
+     IN in_nachricht  VARCHAR(1024),
+     IN in_gruppe_id  INTEGER,
      IN in_student_id INTEGER)
-BEGIN
-    INSERT INTO GruppenBeitrag (gruppe_id, student_id, datum, nachricht)
-    VALUES (in_gruppe_id, in_student_id, CURRENT_DATE, in_nachricht);
+this_procedure: BEGIN
+    DECLARE heute_geburtstag   INTEGER;
+    DECLARE bereits_gratuliert INTEGER;
+
+    DECLARE v_gruppe_id        INTEGER;
+    DECLARE v_student_id       INTEGER;
+    DECLARE v_datum            DATETIME;
+    DECLARE v_student_name     VARCHAR(64);
+
+    INSERT INTO GruppenBeitrag (gruppe_id, student_id, datum, nachricht, typ)
+    VALUES (in_gruppe_id, in_student_id, NOW(), in_nachricht, in_typ);
+
+    IF in_typ <> 'USER' THEN
+        LEAVE this_procedure;
+    END IF;
+
+    -- Nur wer fleißig in die Gruppe schreibt bekommt ein Happy Birthday!
+
+    SELECT CASE -- TODO: use COUNT(1) and put the condition into the WHERE clause.
+        WHEN DATE_FORMAT(geburtsdatum, '%m-%d') = DATE_FORMAT(NOW(), '%m-%d') THEN 1 ELSE 0
+    END INTO heute_geburtstag
+    FROM Student s WHERE s.id = in_student_id;
+
+    IF heute_geburtstag = 0 THEN
+        LEAVE this_procedure;
+    END IF;
+
+    SELECT gruppe_id, student_id, s.name, datum
+    INTO v_gruppe_id, v_student_id, v_student_name, v_datum
+    FROM GruppenBeitrag gb
+    LEFT JOIN Student s ON s.id = gb.student_id
+    WHERE gb.id = in_gruppe_id;
+
+    -- Überprüfe ob bereits eine Gratulation vorliegt.
+    SELECT COUNT(1) INTO bereits_gratuliert
+    FROM GruppenBeitrag
+    WHERE typ = 'BIRTHDAY'
+      AND student_id = v_student_id
+      AND DATE_FORMAT(datum, '%Y') = DATE_FORMAT(CURRENT_DATE, '%Y');
+
+    IF bereits_gratuliert = 0 THEN
+        -- Nachrichten vom Typ 'BIRTHDAY' können beim Client speziell formatiert werden.
+        -- Die student_id ist hier nicht der Autor, sondern der Student welcher Geburtstag hat.
+        -- Mit dieser ID können dann später Informationen wie der Name des Studenten abgefragt werden.
+        CALL GruppenBeitragVerfassen('BIRTHDAY', '.', v_gruppe_id, v_student_id);
+    END IF;
 END;
 //
 DELIMITER ;
@@ -441,12 +494,12 @@ DROP PROCEDURE IF EXISTS LerngruppenAusgeben;
 
 CREATE PROCEDURE LerngruppenAusgeben(modul_id INTEGER)
 BEGIN
-    DECLARE v_name VARCHAR(64);
+    DECLARE v_name         VARCHAR(64);
     DECLARE v_ersteller_id INTEGER;
-    DECLARE v_gruppe_id INTEGER;
-    DECLARE v_mitglieder INTEGER;
-    DECLARE v_deadline DATE;
-    DECLARE komma CHAR(1) DEFAULT ',';
+    DECLARE v_gruppe_id    INTEGER;
+    DECLARE v_mitglieder   INTEGER;
+    DECLARE v_deadline     DATETIME;
+    DECLARE komma          CHAR(1) DEFAULT ',';
 
     DECLARE modul_existiert INTEGER;
     DECLARE done INT DEFAULT FALSE;
@@ -486,7 +539,7 @@ BEGIN
             'Gruppenname=', v_name, komma,
             'Mitgliederanzahl=', CAST(v_mitglieder AS CHAR), komma,
             'Ersteller=', CAST(v_ersteller_id AS CHAR), komma,
-            'Deadline=', IFNULL(DATE_FORMAT(v_deadline, '%d.%m.%Y'), 'NULL')
+            'Deadline=', IFNULL(DATE_FORMAT(v_deadline, '%d.%m.%Y %H:%i:%s'), 'NULL')
         );
     END LOOP;
     CLOSE gruppe_cursor;
@@ -500,8 +553,8 @@ CREATE PROCEDURE LetzterBeitragVonGruppe(v_gruppe_id INT )
 BEGIN
     DECLARE r_comment VARCHAR(250);
     DECLARE v_name VARCHAR(250);
-    DECLARE v_start date;
-    DECLARE v_date date;
+    DECLARE v_start datetime;
+    DECLARE v_date datetime;
     DECLARE nr INT;
     DECLARE finished INT DEFAULT 0;
 
@@ -513,7 +566,7 @@ BEGIN
 
     /*Eine temporaere Table erzeugen um die Werten abzuspeichern */
     DROP TEMPORARY TABLE IF EXISTS TempTable;
-	CREATE TEMPORARY TABLE TempTable( v_date DATE,v_name VARCHAR(250),r_comment VARCHAR(250));
+	CREATE TEMPORARY TABLE TempTable( v_date DATETIME,v_name VARCHAR(250),r_comment VARCHAR(250));
 
     /*--Die Anzahl von den Beiteagen zu einer gegebenen
     --Gruppe in der Variable nr speicher*/
@@ -555,7 +608,7 @@ AFTER INSERT ON Gruppe
 FOR EACH ROW
 BEGIN
     INSERT INTO Gruppe_Student (gruppe_id, student_id, beitrittsdatum)
-    VALUES (NEW.id, NEW.ersteller_id, CURRENT_DATE);
+    VALUES (NEW.id, NEW.ersteller_id, NOW());
 END //
 DELIMITER ;
 
@@ -598,7 +651,7 @@ BEGIN
         signal sqlstate '20035' set message_text = 'Eine neue Gruppenanfrage muss unbestätigt sein.';
     END IF;
 
-    SET new.datum := CURRENT_DATE; -- Stelle sicher dass das Datum aktuell ist.
+    SET new.datum := NOW(); -- Stelle sicher dass das Datum aktuell ist.
 END //
 DELIMITER ;
 
@@ -626,7 +679,7 @@ FOR EACH ROW
 BEGIN
     DECLARE g_limit TINYINT;
     DECLARE g_betretbar CHAR(1);
-    DECLARE g_deadline DATE;
+    DECLARE g_deadline DATETIME;
     DECLARE g_ersteller_id INTEGER;
 
     DECLARE anzahl_mitglieder INT;
@@ -682,7 +735,7 @@ BEGIN
     DELETE FROM GruppenAnfrage
     WHERE gruppe_id = NEW.gruppe_id AND student_id = NEW.student_id;
 
-    CALL GruppenBeitragVerfassen(
+    CALL GruppenBeitragVerfassen('SYSTEM',
         CONCAT(StudentenName(NEW.student_id), ' ist der Gruppe beigetreten.'),
         NEW.gruppe_id, NULL
     );
@@ -701,8 +754,10 @@ this_trigger: BEGIN
     DECLARE ist_ersteller_mitglied INT;
     DECLARE neuer_besitzer_id INT;
 
-    CALL GruppenBeitragVerfassen(concat(StudentenName(old.student_id),
-        ' hat die Gruppe verlassen.'), old.gruppe_id, NULL);
+    CALL GruppenBeitragVerfassen('SYSTEM',
+        concat(StudentenName(old.student_id), ' hat die Gruppe verlassen.'),
+        old.gruppe_id, NULL
+    );
 
     SELECT COUNT(gs.student_id) INTO anzahl_mitglieder
     FROM Gruppe_Student gs
@@ -748,8 +803,10 @@ this_trigger: BEGIN
     SET g.ersteller_id = neuer_besitzer_id
     WHERE g.id = old.gruppe_id;
 
-    CALL GruppenBeitragVerfassen(concat(StudentenName(neuer_besitzer_id),
-        ' wurde zum neuen Gruppenleiter erwählt.'), old.gruppe_id, NULL);
+    CALL GruppenBeitragVerfassen('SYSTEM',
+        concat(StudentenName(neuer_besitzer_id), ' wurde zum neuen Gruppenleiter erwählt.'),
+        old.gruppe_id, NULL
+    );
 END //
 DELIMITER ; -- delimiter resetten
 
@@ -789,67 +846,10 @@ DELIMITER ;
 
 -- region Notizen
 
--- TODO Anstatt eines Triggers welcher das Datum des erstellten Beitrags
---      überprüft, wäre eine Prozedur welche einen Beitrag erstellt sinnvoller.
-/*/
--- FIXME: Trigger wurde einfach nur von `trigger_Gruppe_deadline` kopiert.
-CREATE TRIGGER trigger_GruppenBeitrag_datum
-    BEFORE INSERT
-    ON GruppenBeitrag
-    FOR EACH ROW
-BEGIN
-    IF (:NEW.datum < SYSDATE)
-    THEN
-        RAISE_APPLICATION_ERROR(
-            -20002,
-            'Datum darf nicht in der Vergangenheit liegen.' ||
-                to_char(:NEW.datum, 'YYYY-MM-DD HH24:MI:SS')
-        );
-    END IF;
-END;
-/
-/**/
-
 -- TODO [Trigger] Einfügen überlappender Treffzeiten zusammenführen.
 -- Falls ein einzufügender Zeitintervall mit einem anderen überlappt
 -- sollte der existierende geupdated werden anstatt einen Fehler zu werden.
 -- -> { von: MIN(:old.von, :new.von), bis: MAX(:old.bis, :new.bis) }
-
--- TODO [Prozedur] Prüfen ob ein Student/Nutzer verifiziert ist.
--- Überprüft ob in der Tabelle `StudentVerifizierung` ein Eintrag vorhanden ist.
--- Nützlich für Client-seitiges welches nur für verifizierte Nutzer möglich ist.
-
--- TODO [Prozedur] Studenten/Nutzer verifizieren.
--- Nimmt Parameter `student_id` und `kennung` (UUID) und überprüft
--- ob damit ein der gegebene Student verifiziert werden kann.
--- 1) Eintrag in `StudentVerifizierung` nicht vorhanden -> ERROR
--- 1) Ansonsten -> Eintrag entfernen + SUCCESS
-
--- TODO [Prozedur] Einer Gruppe beitreten.
--- Versucht einer Gruppe einen Studenten hinzuzufügen.
--- Die folgenden 3 Fälle müssen abgedeckt werden:
--- 1) Die Gruppe ist bereits vollständig belegt -> ERROR
--- 2) Die Gruppe ist direkt betretbar
---      -> Student hinzufügen + Anfrage löschen, falls vorhanden
--- 3) Sonst -> Beitrittsanfrage erstellen (Prozedur aufrufen)
---      + entsprechenden Wert zurückgeben
-
--- TODO [Prozedur] Eine Gruppe verlassen.
-
--- TODO [Prozedur] Eine Beitrittsanfrage erstellen.
--- Erstellt für einen Studenten eine Beitrittsanfrage zu einer Gruppe.
--- 1) Der Student ist bereits in der Gruppe -> ERROR
--- 2) Sonst -> Beitrittsanfrage erstellen
-
--- TODO [Prozedur] Eine Beitrittsanfrage annehmen.
--- Nimmt eine Beitrittsanfrage eines Studenten an.
--- 1) Die Gruppe ist vollständig belegt -> ERROR
--- 2) Sonst -> Student hinzufügen und alle anderen
---      Anfragen des Studenten welche zum selben Modul gehören löschen.
---      Man möchte wahrscheinlich nicht mehrere Gruppen für ein Modul belegen.
---      Oder doch?
-
--- TODO [Prozedur] Eine Beitrittsanfrage ablehnen.
 
 -- TODO [Tabelle] Treffzeiten nach Wochentag.
 

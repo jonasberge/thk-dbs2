@@ -166,15 +166,22 @@ CREATE TABLE GruppenDienstlink (
 
 CREATE TABLE GruppenBeitrag (
     id         INTEGER PRIMARY KEY,
-    gruppe_id  INTEGER        NOT NULL,
+    gruppe_id  INTEGER                NOT NULL,
     student_id INTEGER, -- Darf NULL sein, falls Nutzer gelöscht wurde.
-    datum      DATE           NOT NULL,
-    nachricht  VARCHAR2(1024) NOT NULL,
+    datum      DATE                   NOT NULL,
+    nachricht  VARCHAR2(1024)         NOT NULL,
+    typ        CHAR(8) DEFAULT 'USER' NOT NULL,
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
     FOREIGN KEY (student_id)
         REFERENCES Student (id)
 );
+
+ALTER TABLE GruppenBeitrag
+    ADD CONSTRAINT check_GruppenBeitrag_typ
+        CHECK (typ IN ('USER', 'SYSTEM', 'BIRTHDAY'));
+
+DROP TRIGGER trigger_GruppenBeitrag_geburtstag;
 
 CREATE INDEX index_GruppenBeitrag_gruppe_datum
     ON GruppenBeitrag (gruppe_id, datum);
@@ -197,11 +204,11 @@ CREATE TABLE Gruppe_Student (
 
 -- Anfrage eines Studenten um einer Gruppe beizutreten.
 CREATE TABLE GruppenAnfrage (
-    gruppe_id  INTEGER                 NOT NULL,
-    student_id INTEGER                 NOT NULL,
-    datum      DATE    DEFAULT SYSDATE NOT NULL,
+    gruppe_id  INTEGER                       NOT NULL,
+    student_id INTEGER                       NOT NULL,
+    datum      DATE          DEFAULT SYSDATE NOT NULL,
     nachricht  VARCHAR2(256) DEFAULT NULL,
-    bestaetigt CHAR(1) DEFAULT '0'     NOT NULL,
+    bestaetigt CHAR(1)       DEFAULT '0'     NOT NULL,
     PRIMARY KEY (gruppe_id, student_id),
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
@@ -312,15 +319,22 @@ BEGIN
 END;
 
 CREATE OR REPLACE PROCEDURE GruppenBeitragVerfassen
-    (nachricht IN GruppenBeitrag.nachricht % TYPE,
-     gruppe_id IN INTEGER, student_id IN INTEGER DEFAULT NULL)
+    (typ        IN GruppenBeitrag.typ       % TYPE,
+     nachricht  IN GruppenBeitrag.nachricht % TYPE,
+     gruppe_id  IN GruppenBeitrag.gruppe_id % TYPE,
+     student_id IN INTEGER                         DEFAULT NULL)
 IS
 BEGIN
-    INSERT INTO GruppenBeitrag gb (id, gb.gruppe_id, gb.student_id, datum, gb.nachricht)
+    -- TODO: RAISE_APPLICATION_ERROR falls
+    -- typ <> 'USER' und student_id gesetzt oder
+    -- typ = 'USER' und student_id nicht gesetzt.
+
+    INSERT INTO GruppenBeitrag gb (id, gb.gruppe_id, gb.student_id, datum, gb.nachricht, gb.typ)
     VALUES (sequence_GruppenBeitrag.nextval,
             GruppenBeitragVerfassen.gruppe_id,
             GruppenBeitragVerfassen.student_id, SYSDATE,
-            GruppenBeitragVerfassen.nachricht);
+            GruppenBeitragVerfassen.nachricht,
+            GruppenBeitragVerfassen.typ);
 END;
 
 CREATE OR REPLACE PROCEDURE GruppeLoeschen
@@ -618,8 +632,10 @@ COMPOUND TRIGGER
             DBMS_OUTPUT.PUT_LINE('Vorhandende Beitrittsanfrage gelöscht');
         END IF;
 
-        GruppenBeitragVerfassen(StudentenName(:new.student_id)
-            || ' ist der Gruppe beigetreten.', :new.gruppe_id);
+        GruppenBeitragVerfassen('SYSTEM',
+            StudentenName(:new.student_id) || ' ist der Gruppe beigetreten.',
+            :new.gruppe_id
+        );
     END BEFORE EACH ROW;
 
     AFTER STATEMENT IS
@@ -663,8 +679,10 @@ COMPOUND TRIGGER
         g_gruppen.EXTEND;
         g_gruppen(g_gruppen.LAST) := :old.gruppe_id;
 
-        GruppenBeitragVerfassen(StudentenName(:old.student_id)
-            || ' hat die Gruppe verlassen.', :old.gruppe_id);
+        GruppenBeitragVerfassen('SYSTEM',
+            StudentenName(:old.student_id) || ' hat die Gruppe verlassen.',
+            :old.gruppe_id
+        );
     END AFTER EACH ROW;
 
     AFTER STATEMENT IS
@@ -719,8 +737,68 @@ COMPOUND TRIGGER
                 SET g.ersteller_id = neuer_besitzer_id
                 WHERE g.id = modifizierte_gruppe_id;
 
-                GruppenBeitragVerfassen(StudentenName(neuer_besitzer_id)
-                    || ' wurde zum neuen Gruppenleiter erwählt.', modifizierte_gruppe_id);
+                GruppenBeitragVerfassen('SYSTEM',
+                    StudentenName(neuer_besitzer_id) || ' wurde zum neuen Gruppenleiter erwählt.',
+                    modifizierte_gruppe_id
+                );
+            END LOOP;
+        END IF;
+    END AFTER STATEMENT;
+END;
+
+-- Nur wer fleißig in die Gruppe schreibt bekommt ein Happy Birthday!
+CREATE OR REPLACE TRIGGER trigger_GruppenBeitrag_geburtstag
+FOR INSERT ON GruppenBeitrag
+COMPOUND TRIGGER
+    TYPE beitrag_t IS TABLE OF GruppenBeitrag.id % TYPE;
+
+    g_beitrag beitrag_t := beitrag_t();
+
+    AFTER EACH ROW IS
+        heute_geburtstag INTEGER;
+    BEGIN
+        IF :new.typ = 'USER' THEN
+            SELECT CASE
+                WHEN TO_CHAR(geburtsdatum, 'MM-DD-YYYY') = TO_CHAR(:new.datum, 'MM-DD-YYYY') THEN 1 ELSE 0
+            END INTO heute_geburtstag
+            FROM Student s WHERE s.id = :new.student_id;
+
+            IF heute_geburtstag = 1 THEN
+                g_beitrag.EXTEND;
+                g_beitrag(g_beitrag.LAST) := :new.id;
+            END IF;
+        END IF;
+    END AFTER EACH ROW;
+
+    AFTER STATEMENT IS
+        v_gruppe_id        GruppenBeitrag.gruppe_id  % TYPE;
+        v_student_id       GruppenBeitrag.student_id % TYPE;
+        v_datum            GruppenBeitrag.datum      % TYPE;
+        v_student_name     Student.name              % TYPE;
+        bereits_gratuliert INTEGER;
+    BEGIN
+        IF g_beitrag IS NOT EMPTY THEN
+            FOR i IN g_beitrag.FIRST .. g_beitrag.LAST
+            LOOP
+                SELECT gruppe_id, student_id, s.name, datum
+                INTO v_gruppe_id, v_student_id, v_student_name, v_datum
+                FROM GruppenBeitrag gb
+                LEFT JOIN Student s ON s.id = gb.student_id
+                WHERE gb.id = g_beitrag(i);
+
+                -- Überprüfe ob bereits eine Gratulation vorliegt.
+                SELECT COUNT(1) INTO bereits_gratuliert
+                FROM GruppenBeitrag
+                WHERE typ = 'BIRTHDAY'
+                  AND student_id = v_student_id
+                  AND TO_CHAR(datum, 'YYYY') = TO_CHAR(SYSDATE, 'YYYY');
+
+                IF bereits_gratuliert = 0 THEN
+                    -- Nachrichten vom Typ 'BIRTHDAY' können beim Client speziell formatiert werden.
+                    -- Die student_id ist hier nicht der Autor, sondern der Student welcher Geburtstag hat.
+                    -- Mit dieser ID können dann später Informationen wie der Name des Studenten abgefragt werden.
+                    GruppenBeitragVerfassen('BIRTHDAY', TO_CHAR(v_student_id), v_gruppe_id, v_student_id);
+                END IF;
             END LOOP;
         END IF;
     END AFTER STATEMENT;

@@ -406,6 +406,64 @@ DELETE FROM Fakultaet;
 -- endregion [Test-Gruppe] Account zurücksetzen
 
 
+-- region [Test-Gruppe] Trigger Gruppe
+
+INSERT INTO Fakultaet (ID, NAME, STANDORT)
+VALUES (1, 'Informatik', 'Gummersbach');
+
+INSERT INTO Studiengang (ID, NAME, FAKULTAET_ID, ABSCHLUSS)
+VALUES (1, 'Informatik', 1, 'BSC.INF');
+
+INSERT INTO Modul (ID, NAME, DOZENT, SEMESTER)
+VALUES (1, 'Mathematik 1', 'Wolfgang Konen', 1);
+
+INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
+                     PROFIL_BESCHREIBUNG, STUDIENGANG_ID, SEMESTER, GEBURTSDATUM)
+SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.', 1, 1, SYSDATE FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
+VALUES (1, 1, 1 /* Frank */, 'Mathe-Boyz', '1');
+
+
+-- [Test] Geburtstags-Nachricht an Verfasser falls an selbem Tag Geburtstag.
+
+INSERT INTO GruppenBeitrag (id, gruppe_id, student_id, datum, nachricht, typ)
+VALUES (sequence_GruppenBeitrag.nextval, 1, 1 /* Frank */, SYSDATE, 'Lel', 'USER');
+
+/*  Folgende Nachricht wurde verschickt:
+    GRUPPE_ID   STUDENT_ID  DATUM                   NACHRICHT   TYP
+    1           1	        2020-05-24 23:50:58	    1	        BIRTHDAY
+ */
+SELECT * FROM GruppenBeitrag WHERE typ = 'BIRTHDAY';
+
+-- endregion
+
+
+-- [Test] Es wird nur eine Geburtstags-Nachricht (pro Jahr) verschickt.
+
+INSERT INTO GruppenBeitrag (id, gruppe_id, student_id, datum, nachricht, typ)
+VALUES (sequence_GruppenBeitrag.nextval, 1, 1 /* Frank */, SYSDATE, 'Lel', 'USER');
+
+/*  Es ist immer noch nur eine Nachricht vorhanden:
+    GRUPPE_ID   STUDENT_ID  DATUM                   NACHRICHT   TYP
+    1           1	        2020-05-24 23:50:58	    1	        BIRTHDAY
+ */
+SELECT * FROM GruppenBeitrag WHERE typ = 'BIRTHDAY';
+
+-- endregion
+
+
+DELETE FROM Gruppe_Student;
+DELETE FROM GruppenBeitrag;
+DELETE FROM Gruppe;
+DELETE FROM Student;
+DELETE FROM Modul;
+DELETE FROM Studiengang;
+DELETE FROM Fakultaet;
+
+-- endregion
+
+
 -- region [Test-Gruppe] Lerngruppen ausgeben
 
 

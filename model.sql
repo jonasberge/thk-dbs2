@@ -521,15 +521,33 @@ END;
 -- region TRIGGER - Trigger erstellen
 
 CREATE OR REPLACE TRIGGER trigger_Gruppe
-BEFORE INSERT ON Gruppe
-FOR EACH ROW
-DECLARE
-BEGIN
-    INSERT INTO Gruppe_Student (gruppe_id, student_id, beitrittsdatum)
-    VALUES (:new.id, :new.ersteller_id, SYSDATE);
-END;
+FOR INSERT ON Gruppe
+COMPOUND TRIGGER
+    TYPE erstellte_gruppe_t IS RECORD (
+        gruppe_id Gruppe.id % TYPE,
+        ersteller_id Gruppe.ersteller_id % TYPE
+    );
 
-SELECT * FROM USER_ERRORS;
+    TYPE erstellte_gruppe_tbl_t IS TABLE OF erstellte_gruppe_t
+    INDEX BY PLS_INTEGER;
+
+    g_erstellte_gruppen erstellte_gruppe_tbl_t := erstellte_gruppe_tbl_t();
+
+    BEFORE EACH ROW IS
+    BEGIN
+        g_erstellte_gruppen(g_erstellte_gruppen.COUNT + 1).gruppe_id := :new.id;
+        g_erstellte_gruppen(g_erstellte_gruppen.COUNT).ersteller_id := :new.ersteller_id;
+    END BEFORE EACH ROW;
+
+    AFTER STATEMENT IS
+    BEGIN
+        FOR i IN g_erstellte_gruppen.FIRST .. g_erstellte_gruppen.LAST
+        LOOP
+            INSERT INTO Gruppe_Student (gruppe_id, student_id, beitrittsdatum)
+            VALUES (g_erstellte_gruppen(i).gruppe_id, g_erstellte_gruppen(i).ersteller_id, SYSDATE);
+        END LOOP;
+    END AFTER STATEMENT;
+END;
 
 CREATE OR REPLACE TRIGGER trigger_GruppenAnfrage
 BEFORE INSERT OR UPDATE ON GruppenAnfrage

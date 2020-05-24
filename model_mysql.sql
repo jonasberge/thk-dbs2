@@ -186,11 +186,11 @@ CREATE TABLE Gruppe_Student (
 
 -- Anfrage eines Studenten um einer Gruppe beizutreten.
 CREATE TABLE GruppenAnfrage (
-    gruppe_id  INT NOT NULL,
-    student_id INT NOT NULL,
-    datum      DATE    NOT NULL,
-    nachricht  VARCHAR(256),
-    bestaetigt CHAR(1) DEFAULT '0' NOT NULL,
+    gruppe_id  INT                               NOT NULL,
+    student_id INT                               NOT NULL,
+    datum      DATE         DEFAULT CURRENT_DATE NOT NULL,
+    nachricht  VARCHAR(256) DEFAULT NULL,
+    bestaetigt CHAR(1)      DEFAULT '0'          NOT NULL,
     PRIMARY KEY (gruppe_id, student_id),
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
@@ -489,6 +489,55 @@ DELIMITER ;
 -- endregion
 
 -- region TRIGGER - Trigger erstellen
+
+DROP TRIGGER IF EXISTS trigger_GruppenAnfrage;
+
+CREATE TRIGGER trigger_GruppenAnfrage
+BEFORE INSERT ON GruppenAnfrage
+FOR EACH ROW
+BEGIN
+    DECLARE gruppe_betretbar INTEGER;
+    DECLARE bereits_in_gruppe INTEGER;
+    DECLARE anfrage_existiert INTEGER;
+
+    SELECT g.betretbar INTO gruppe_betretbar
+    FROM Gruppe g
+    WHERE g.id = new.gruppe_id;
+
+    IF gruppe_betretbar = '1' THEN
+        signal sqlstate '20032' set message_text = 'Diese Gruppe erfordert keine Anfrage.';
+    END IF;
+
+    SELECT COUNT(1) INTO bereits_in_gruppe
+    FROM Gruppe_Student gs
+    WHERE gs.gruppe_id = new.gruppe_id AND gs.student_id = new.student_id;
+
+    IF bereits_in_gruppe = 1 THEN
+        signal sqlstate '20033' set message_text = 'Der anfragende Nutzer ist bereits in dieser Gruppe.';
+    END IF;
+
+    SELECT COUNT(1) INTO anfrage_existiert
+    FROM GruppenAnfrage ga
+    WHERE ga.gruppe_id = new.gruppe_id AND ga.student_id = new.student_id;
+
+    IF anfrage_existiert = 1 THEN
+        signal sqlstate '20034' set message_text = 'Es existiert bereits eine Anfrage für diesen Nutzer.';
+    END IF;
+
+    IF new.bestaetigt = '1' THEN
+        signal sqlstate '20035' set message_text = 'Eine neue Gruppenanfrage muss unbestätigt sein.';
+    END IF;
+
+    SET new.datum := CURRENT_DATE; -- Stelle sicher dass das Datum aktuell ist.
+END;
+
+CREATE TRIGGER trigger_GruppenAnfrage
+BEFORE UPDATE ON GruppenAnfrage
+FOR EACH ROW
+BEGIN
+    -- TODO: überprüfe ob ausschließlich die `nachricht` geupdated wird.
+    signal sqlstate '20031' set message_text = 'Nur die Nachricht einer Anfrage kann bearbeitet werden.';
+END;
 
 DROP TRIGGER IF EXISTS trigger_GruppeBeitreten;
 

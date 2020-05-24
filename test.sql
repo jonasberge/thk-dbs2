@@ -158,10 +158,10 @@ ID   gruppe Id		student Id		DATE		COMMENT
 ..		..			.				..			...	
 ..		..			.				..			..	
   */
-/*----  mit dem PROCEDURE  lastdatecomment(gruppe ID) lässt sich das 
+/*----  mit dem PROCEDURE  LetzterBeitragVonGruppe(gruppe ID) lässt sich das 
 letze beitrag von einer gruppe  ausgeben-----
 */
-EXECUTE lastdateComment(3);
+EXECUTE LetzterBeitragVonGruppe(3);
 
 /*Ergebnis naher
 
@@ -190,17 +190,17 @@ SELECT * FROM studentNachricht WHERE  student_id = 2;
 /*
  ID         	Nachricht					Gruppe_id		student_id			Name			ABSCHLUSS
 (Beitrag_id)
-21				wann ist naechste ..		3					2				Hermann			BSC.ING
-23				ich bin heute nicht dabei !	3					2				Hermann			BSC.ING
-24				Termin wird verschoben !	3					2				Hermann			BSC.ING
-1				hello world					1					2				Hermann			BSC.ING
-3				wann ist naechste ..		1					2				Hermann			BSC.ING
+21				wann ist naechste ..		    3				2				Hermann			BSC.ING
+23				ich bin heute nicht dabei !	    3				2				Hermann			BSC.ING
+24				Termin wird verschoben !	    3				2				Hermann			BSC.ING
+1				hello world					    1				2				Hermann			BSC.ING
+3				wann ist naechste ..		    1				2				Hermann			BSC.ING
 
 */
 
 /* INSTEAD OF VIEW deactivieren  damit der Test fehl schlaegt*/
 
-ALTER TRIGGER COMMENT_DETAILS_VW_DML DISABLE;
+ALTER TRIGGER BeitragVonStudent DISABLE;
 
 ---Test functioniert nicht wenn man zum Beispiel anhand der view eine bestimtes beitrag von dem studenten ändern möchtet
 
@@ -217,7 +217,7 @@ SQL Error: ORA-01779: cannot modify a column which maps to a non key-preserved t
 
 /* INSTEAD OF VIEW JETZT activieren  t*/
 
-ALTER TRIGGER COMMENT_DETAILS_VW_DML ENABLE;
+ALTER TRIGGER BeitragVonStudent ENABLE;
 
 /* der test wird wiederholt und klappt jetz */
 

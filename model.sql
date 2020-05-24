@@ -520,6 +520,17 @@ END;
 
 -- region TRIGGER - Trigger erstellen
 
+CREATE OR REPLACE TRIGGER trigger_Gruppe
+BEFORE INSERT ON Gruppe
+FOR EACH ROW
+DECLARE
+BEGIN
+    INSERT INTO Gruppe_Student (gruppe_id, student_id, beitrittsdatum)
+    VALUES (:new.id, :new.ersteller_id, SYSDATE);
+END;
+
+SELECT * FROM USER_ERRORS;
+
 CREATE OR REPLACE TRIGGER trigger_GruppenAnfrage
 BEFORE INSERT OR UPDATE ON GruppenAnfrage
 FOR EACH ROW

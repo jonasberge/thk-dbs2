@@ -1,6 +1,3 @@
-
-/*****  TESTFALL 1 ***/
-
 -- region DELETE
 
 DELETE FROM GruppenEinladung;

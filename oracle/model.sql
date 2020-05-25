@@ -8,7 +8,6 @@ DROP TABLE GruppenDienstlink;
 DROP TABLE Gruppe;
 DROP TABLE StudentWiederherstellung;
 DROP TABLE StudentVerifizierung;
-DROP TABLE EindeutigeKennung;
 DROP TABLE Student;
 DROP TABLE Studiengang_Modul;
 DROP TABLE Modul;
@@ -335,13 +334,10 @@ END;
 -- region PROCEDURE - Prozeduren erstellen
 
 CREATE OR REPLACE PROCEDURE Verifizieren
-    (in_kennung IN EindeutigeKennung.kennung % TYPE)
+    (in_kennung IN StudentVerifizierung.kennung % TYPE)
 IS
 BEGIN
-    DELETE FROM StudentVerifizierung WHERE kennung_id = (
-        SELECT kennung_id FROM EindeutigeKennung ek
-        WHERE ek.kennung = in_kennung
-    );
+    DELETE FROM StudentVerifizierung WHERE kennung = in_kennung;
 
     IF SQL % ROWCOUNT = 0 THEN
         RAISE_APPLICATION_ERROR(-20081, 'Verifizierung konnte nicht durchgeführt werden.');

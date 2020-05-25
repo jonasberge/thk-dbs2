@@ -8,7 +8,6 @@ DELETE FROM GruppenDienstlink;
 DELETE FROM Gruppe;
 DELETE FROM StudentWiederherstellung;
 DELETE FROM StudentVerifizierung;
-DELETE FROM EindeutigeKennung;
 DELETE FROM Student;
 DELETE FROM Studiengang_Modul;
 DELETE FROM Modul;
@@ -37,22 +36,34 @@ INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
 VALUES (1, 1, 1 /* Frank */, 'Mathe-Boyz', '1');
 
 
-INSERT INTO StudentVerifizierung (kennung_id, student_id, kennung)
-VALUES (1, 1, 'idkman');
+INSERT INTO StudentVerifizierung (student_id, kennung)
+VALUES (1, 'idkman');
 
-INSERT INTO StudentWiederherstellung (kennung_id, student_id, kennung)
-VALUES (1, 1, 'wiederherstellmefastplskthx');
+INSERT INTO StudentWiederherstellung (student_id, kennung)
+VALUES (1, 'wiederherstellmefastplskthx');
 
-INSERT INTO GruppenEinladung (kennung_id, gruppe_id, ersteller_id, gueltig_bis, kennung)
-VALUES (1, 1, 1, SYSDATE + 3, 'kommtherhiergibtsheißesemmeln');
+INSERT INTO GruppenEinladung (gruppe_id, ersteller_id, gueltig_bis, kennung)
+VALUES (1, 1, SYSDATE + 3, 'kommtherhiergibtsheißesemmeln');
 
 
+/*  KENNUNG     STUDENT_ID
+    idkman      1
+*/
 SELECT * FROM StudentVerifizierung;
+
+
+/*  KENNUNG                         STUDENT_ID
+    wiederherstellmefastplskthx     1
+*/
 SELECT * FROM StudentWiederherstellung;
+
+
+/*  KENNUNG                         GRUPPE_ID   STUDENT_ID  GUELTIG_BIS
+    kommtherhiergibtsheißesemmeln  	1       	1	        2020-05-28 02:40:04
+*/
 SELECT * FROM GruppenEinladung;
 
 
-DELETE FROM EindeutigeKennung;
 DELETE FROM StudentVerifizierung;
 DELETE FROM StudentWiederherstellung;
 DELETE FROM GruppenEinladung;

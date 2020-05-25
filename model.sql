@@ -15,6 +15,11 @@ DROP TABLE Modul;
 DROP TABLE Studiengang;
 DROP TABLE Fakultaet;
 
+DROP TYPE GruppenEinladung_type;
+DROP TYPE StudentWiederherstellung_typ;
+DROP TYPE StudentVerifizierung_typ;
+DROP TYPE EindeutigeKennung_typ;
+
 DROP PROCEDURE GruppenBeitragVerfassen;
 DROP PROCEDURE GruppeLoeschen;
 DROP PROCEDURE AccountZuruecksetzen;
@@ -29,6 +34,44 @@ DROP SEQUENCE sequence_Student;
 DROP SEQUENCE sequence_EindeutigeKennung;
 DROP SEQUENCE sequence_Gruppe;
 DROP SEQUENCE sequence_GruppenBeitrag;
+
+-- endregion
+
+-- region TYPE - Typen erstellen
+
+CREATE TYPE EindeutigeKennung_typ
+AS OBJECT
+(
+    kennung CHAR(32) -- UUID
+)
+NOT INSTANTIABLE
+NOT FINAL;
+
+CREATE OR REPLACE TYPE StudentVerifizierung_typ
+UNDER EindeutigeKennung_typ
+(
+    student_id INTEGER
+)
+INSTANTIABLE
+FINAL;
+
+CREATE OR REPLACE TYPE StudentWiederherstellung_typ
+UNDER EindeutigeKennung_typ
+(
+    student_id INTEGER
+)
+INSTANTIABLE
+FINAL;
+
+CREATE OR REPLACE TYPE GruppenEinladung_type
+UNDER EindeutigeKennung_typ
+(
+    gruppe_id    INTEGER,
+    ersteller_id INTEGER,
+    gueltig_bis  DATE
+)
+INSTANTIABLE
+FINAL;
 
 -- endregion
 
@@ -97,33 +140,23 @@ ALTER TABLE Student
 
 -- TODO [Scheduler] Nach Ablauf des Semesters `semester` des Studenten erhöhen.
 
-CREATE TABLE EindeutigeKennung (
-    id      INTEGER PRIMARY KEY,
-    kennung CHAR(32) NOT NULL -- UUID
-);
-
-CREATE UNIQUE INDEX index_EindeutigeKennung_kennung
-    ON EindeutigeKennung(kennung);
-
 -- Ein Eintrag zur Verifizierung des Nutzer-Accounts.
-CREATE TABLE StudentVerifizierung (
-    kennung_id INTEGER PRIMARY KEY,
-    student_id INTEGER NOT NULL UNIQUE,
-    FOREIGN KEY (kennung_id)
-        REFERENCES EindeutigeKennung (id),
+CREATE TABLE StudentVerifizierung OF StudentVerifizierung_typ (
+    kennung    PRIMARY KEY,
+    student_id NOT NULL UNIQUE,
     FOREIGN KEY (student_id)
         REFERENCES Student (id)
-);
+)
+OBJECT IDENTIFIER IS PRIMARY KEY;
 
 -- Ein Eintrag zur Widerherstellung des Passworts eines Studenten.
-CREATE TABLE StudentWiederherstellung (
-    kennung_id INTEGER PRIMARY KEY,
-    student_id INTEGER NOT NULL UNIQUE,
-    FOREIGN KEY (kennung_id)
-        REFERENCES EindeutigeKennung (id),
+CREATE TABLE StudentWiederherstellung OF StudentWiederherstellung_typ (
+    kennung    PRIMARY KEY,
+    student_id NOT NULL UNIQUE,
     FOREIGN KEY (student_id)
         REFERENCES Student (id)
-);
+)
+OBJECT IDENTIFIER IS PRIMARY KEY;
 
 CREATE TABLE Gruppe (
     id           INTEGER PRIMARY KEY,
@@ -181,8 +214,6 @@ ALTER TABLE GruppenBeitrag
     ADD CONSTRAINT check_GruppenBeitrag_typ
         CHECK (typ IN ('USER', 'SYSTEM', 'BIRTHDAY'));
 
-DROP TRIGGER trigger_GruppenBeitrag_geburtstag;
-
 CREATE INDEX index_GruppenBeitrag_gruppe_datum
     ON GruppenBeitrag (gruppe_id, datum);
 
@@ -221,18 +252,17 @@ ALTER TABLE GruppenAnfrage
         CHECK (bestaetigt in ('1', '0'));
 
 -- Eine Einladung zu einer Gruppe. Wird für Einladungslinks verwendet.
-CREATE TABLE GruppenEinladung (
-    kennung_id   INTEGER PRIMARY KEY,
-    gruppe_id    INTEGER NOT NULL,
-    ersteller_id INTEGER, -- Darf NULL sein, falls Nutzer gelöscht wurde.
-    gueltig_bis  DATE,
-    FOREIGN KEY (kennung_id)
-        REFERENCES EindeutigeKennung (id),
+CREATE TABLE GruppenEinladung OF GruppenEinladung_type (
+    kennung      PRIMARY KEY,
+    gruppe_id    NOT NULL,
+    ersteller_id NULL, -- Darf NULL sein, falls Nutzer gelöscht wurde.
+    gueltig_bis  NULL,
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
     FOREIGN KEY (ersteller_id)
         REFERENCES Student (id)
-);
+)
+OBJECT IDENTIFIER IS PRIMARY KEY;
 
 -- TODO [Tabelle] Treffzeiten nach Wochentag.
 
@@ -830,26 +860,4 @@ BEGIN
         END IF;
 END;
 
--- endregion
-
--- region Notizen
-/*
-
-CREATE OR REPLACE TYPE DienstLink_t AS OBJECT (
-    url HTTPURITYPE
-)
-FINAL;
-
-DROP TABLE DienstLink;
-
-CREATE TABLE DienstLink
-OF DienstLink_t
-OBJECT IDENTIFIER IS PRIMARY KEY;
-
-INSERT INTO DienstLink
-VALUES (HTTPURITYPE('https://web.whatsapp.com/invite?id=123'));
-
-SELECT LOWER(SYS_GUID()) FROM dual; -- , * FROM DienstLink;
-
-*/
 -- endregion

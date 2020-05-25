@@ -860,3 +860,5 @@ DELETE FROM Fakultaet;
 
 -- endregion
 
+
+DROP VIEW IF EXISTS view_test_GruppenTeilnehmer;

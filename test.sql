@@ -18,6 +18,56 @@ DELETE FROM Fakultaet;
 -- endregion
 
 
+-- region [Test] Vererbung und Subtypen
+
+INSERT INTO Fakultaet (ID, NAME, STANDORT)
+VALUES (1, 'Informatik', 'Gummersbach');
+
+INSERT INTO Studiengang (ID, NAME, FAKULTAET_ID, ABSCHLUSS)
+VALUES (1, 'Informatik', 1, 'BSC.INF');
+
+INSERT INTO Modul (ID, NAME, DOZENT, SEMESTER)
+VALUES (1, 'Mathematik 1', 'Wolfgang Konen', 1);
+
+INSERT INTO Student (ID, NAME, SMAIL_ADRESSE, PASSWORT_HASH,
+                     PROFIL_BESCHREIBUNG, STUDIENGANG_ID, SEMESTER, GEBURTSDATUM)
+SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.', 1, 1, SYSDATE FROM dual;
+
+INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
+VALUES (1, 1, 1 /* Frank */, 'Mathe-Boyz', '1');
+
+
+INSERT INTO StudentVerifizierung (kennung_id, student_id, kennung)
+VALUES (1, 1, 'idkman');
+
+INSERT INTO StudentWiederherstellung (kennung_id, student_id, kennung)
+VALUES (1, 1, 'wiederherstellmefastplskthx');
+
+INSERT INTO GruppenEinladung (kennung_id, gruppe_id, ersteller_id, gueltig_bis, kennung)
+VALUES (1, 1, 1, SYSDATE + 3, 'kommtherhiergibtsheißesemmeln');
+
+
+SELECT * FROM StudentVerifizierung;
+SELECT * FROM StudentWiederherstellung;
+SELECT * FROM GruppenEinladung;
+
+
+DELETE FROM EindeutigeKennung;
+DELETE FROM StudentVerifizierung;
+DELETE FROM StudentWiederherstellung;
+DELETE FROM GruppenEinladung;
+DELETE FROM GruppenAnfrage;
+DELETE FROM GruppenBeitrag;
+DELETE FROM Gruppe_Student;
+DELETE FROM Gruppe;
+DELETE FROM Student;
+DELETE FROM Modul;
+DELETE FROM Studiengang;
+DELETE FROM Fakultaet;
+
+-- endregion
+
+
 -- Mit * markierte Studenten in der Spalte `TEILNEHMER` sind Gruppenleiter.
 CREATE OR REPLACE VIEW view_test_GruppenTeilnehmer AS
 SELECT g.name as gruppe, listagg(
@@ -425,7 +475,7 @@ INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
 VALUES (1, 1, 1 /* Frank */, 'Mathe-Boyz', '1');
 
 
--- [Test] Geburtstags-Nachricht an Verfasser falls an selbem Tag Geburtstag.
+-- region [Test] Geburtstags-Nachricht an Verfasser falls an selbem Tag Geburtstag.
 
 INSERT INTO GruppenBeitrag (id, gruppe_id, student_id, datum, nachricht, typ)
 VALUES (sequence_GruppenBeitrag.nextval, 1, 1 /* Frank */, SYSDATE, 'Lel', 'USER');
@@ -439,7 +489,7 @@ SELECT * FROM GruppenBeitrag WHERE typ = 'BIRTHDAY';
 -- endregion
 
 
--- [Test] Es wird nur eine Geburtstags-Nachricht (pro Jahr) verschickt.
+-- region [Test] Es wird nur eine Geburtstags-Nachricht (pro Jahr) verschickt.
 
 INSERT INTO GruppenBeitrag (id, gruppe_id, student_id, datum, nachricht, typ)
 VALUES (sequence_GruppenBeitrag.nextval, 1, 1 /* Frank */, SYSDATE, 'Lel', 'USER');
@@ -721,3 +771,5 @@ DELETE FROM fakultaet;
 
 -- endregion
 
+
+DROP VIEW view_test_GruppenTeilnehmer;

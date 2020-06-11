@@ -6,6 +6,7 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from flask_app.db import get_db
+from flask_app.cache import cache
 from flask_app.forms import LoginForm, RegisterForm
 
 
@@ -25,7 +26,7 @@ def login():
     return render_template('auth/login.html', title='Anmelden', form=form)
 
 
-# TODO: cache this. please
+@cache.cached(timeout=60*60)
 def get_all_courses():
     db = get_db()
     cursor = db.cursor()

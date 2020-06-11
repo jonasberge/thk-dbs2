@@ -35,8 +35,9 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    from . import db
+    from . import db, cache
     db.init_app(app)
+    cache.init_app(app)
 
     from . import auth, groups
     app.register_blueprint(auth.bp)

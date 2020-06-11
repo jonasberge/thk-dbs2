@@ -1,9 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Anmelden</h1>
-    <form action="" method="post">
+    <h1>Registrieren</h1>
+    <form action="" method="post" novalidate> <!-- TODO: remove novalidate -->
         {{ form.hidden_tag() }}
+        <p>
+            {{ form.name.label }}<br>
+            {{ form.name(size=32) }}
+            {% for error in form.name.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.course_id.label }}<br>
+            {{ form.course_id() }}
+            {% for error in form.course_id.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
         <p>
             {{ form.email.label }}<br>
             {{ form.email(size=32) }}

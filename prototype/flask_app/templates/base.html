@@ -6,6 +6,22 @@
     <title>{% block title %}{% endblock %} - TH-Lerngruppen</title>
 </head>
 <body>
-
+	<div>
+		Navigation:
+		<a href="/">Index</a>
+		<a href="/auth/login">Login</a>
+		<a href="/auth/register">Registrieren</a>
+	</div>
+    <hr>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
 </body>
 </html>

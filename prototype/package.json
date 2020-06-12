@@ -1,0 +1,72 @@
+{
+  "name": "bootstrap-css",
+  "description": "The most popular front-end framework for developing responsive, mobile first projects on the web.",
+  "version": "4.5.0",
+  "version_short": "4.5",
+  "keywords": [
+    "css",
+    "sass",
+    "mobile-first",
+    "responsive",
+    "front-end",
+    "framework",
+    "web"
+  ],
+  "homepage": "https://getbootstrap.com/",
+  "author": "The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)",
+  "contributors": [
+    "Twitter, Inc."
+  ],
+  "scripts": {
+    "start": "npm-run-all --parallel watch",
+    "css": "npm-run-all css-compile css-prefix css-minify",
+    "css-main": "npm-run-all css-lint css-compile-main css-prefix-main css-minify-main",
+    "css-compile": "npm-run-all --parallel css-compile-*",
+    "css-compile-main": "node-sass --output-style expanded --source-map true --source-map-contents true --precision 6 bootstrap/scss/ -o flask_app/static/css/",
+    "css-lint": "npm-run-all --continue-on-error --parallel css-lint-*",
+    "css-lint-main": "stylelint \"bootstrap/scss/**/*.scss\" --cache --cache-location .cache/.stylelintcache",
+    "css-lint-vars": "fusv bootstrap/scss/",
+    "css-minify": "npm-run-all --parallel css-minify-*",
+    "css-minify-main": "cleancss --level 1 --format breakWith=lf --source-map --source-map-inline-sources --output flask_app/static/css/bootstrap.min.css flask_app/static/css/bootstrap.css && cleancss --level 1 --format breakWith=lf --source-map --source-map-inline-sources --output flask_app/static/css/bootstrap-grid.min.css flask_app/static/css/bootstrap-grid.css && cleancss --level 1 --format breakWith=lf --source-map --source-map-inline-sources --output flask_app/static/css/bootstrap-reboot.min.css flask_app/static/css/bootstrap-reboot.css",
+    "css-prefix": "npm-run-all --parallel css-prefix-*",
+    "css-prefix-main": "postcss --config build/postcss.config.js --replace \"flask_app/static/css/*.css\" \"!flask_app/static/css/*.min.css\"",
+    "lint": "npm-run-all --parallel css-lint lockfile-lint",
+    "lockfile-lint": "lockfile-lint --allowed-hosts npm --allowed-schemes https: --empty-hostname false --type npm --path package-lock.json",
+    "dist": "npm-run-all --parallel css",
+    "watch": "nodemon --watch scss/ --ext scss --exec \"npm run css-main\""
+  },
+  "style": "flask_app/static/css/bootstrap.css",
+  "sass": "bootstrap/scss/bootstrap.scss",
+  "license": "MIT",
+  "funding": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/bootstrap"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.9.6",
+    "@babel/plugin-proposal-object-rest-spread": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "autoprefixer": "^9.7.6",
+    "clean-css-cli": "^4.3.0",
+    "cross-env": "^7.0.2",
+    "find-unused-sass-variables": "^2.0.0",
+    "glob": "^7.1.6",
+    "hammer-simulator": "0.0.1",
+    "ip": "^1.1.5",
+    "lockfile-lint": "^4.2.2",
+    "node-sass": "^4.14.1",
+    "nodemon": "^2.0.3",
+    "npm-run-all": "^4.1.5",
+    "postcss-cli": "^7.1.1",
+    "shelljs": "^0.8.4",
+    "shx": "^0.3.2",
+    "stylelint": "^13.3.3",
+    "stylelint-config-twbs-bootstrap": "^2.0.2"
+  },
+  "files": [
+    "flask_app/static/{css}/*.{css}",
+    "bootstrap/scss/**/*.scss"
+  ]
+}

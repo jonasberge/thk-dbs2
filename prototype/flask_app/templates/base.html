@@ -1,16 +1,29 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
+    {% block head %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% endblock %} - TH-Lerngruppen</title>
+    <title>{% block title %}{% endblock %} - Lerngruppen</title>
+    <style>
+        #nav-search-form {
+            display: inline-flex;
+            flex-flow: row wrap;
+            align-items: center;
+        }
+    </style>
+    {% endblock %}
 </head>
 <body>
 	<div>
 		Navigation:
 		<a href="/">Index</a>
 		<a href="/auth/login">Login</a>
-		<a href="/auth/register">Registrieren</a>
+        <a href="/auth/register">Registrieren</a>
+        <form id="nav-search-form">
+            <input type="text" placeholder="Suche Gruppen" aria-label="Suche Gruppen">
+            <button type="submit">Suchen</button>
+        </form>
 	</div>
     <hr>
     {% with messages = get_flashed_messages() %}

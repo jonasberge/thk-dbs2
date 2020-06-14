@@ -23,43 +23,16 @@ def search():
     form = SearchForm()
     form.module_id.choices = [(-1, 'Alle Module')] + get_all_modules()
 
-    form.module_id.default = request.args.get('module_id')
-    form.process()
-    form.q.data = request.args.get('q')
+    module = request.args.get('module_id', '-1')
+    q = request.args.get('q', '')
 
-    groups = get_groups(request.args.get('module_id'), request.args.get('q'))
+    form.module_id.default = module
+    form.process()
+    form.q.data = q
+
+    groups = get_groups(module, q)
 
     return render_template('search.html', title='Suche', form=form, len=len(groups), Groups=groups)
-
-def add_test_module():
-    db = get_db()
-
-    with db.cursor() as cursor:
-        cursor.execute(
-            """
-                INSERT INTO Modul
-                (id, name, dozent, semester)
-                VALUES (:id, :name, :dozent, :semester)
-            """,
-            [1, "Mathematik 1", "Wolfgang Konen", 1]
-        )
-
-        db.commit()
-
-def add_test_group():
-    db = get_db()
-
-    with db.cursor() as cursor:
-        cursor.execute(
-            """
-                INSERT INTO Gruppe
-                (id, modul_id, ersteller_id, name, betretbar)
-                VALUES (:id, :modul, :ersteller, :name, :betretbar)
-            """,
-            [1, 1, 1, "Mathe Boyz", 1]
-        )
-
-        db.commit()
 
 @cache.cached(timeout=60*60)
 def get_all_modules():
@@ -79,19 +52,24 @@ def get_groups(module, description):
 
         print(module)
 
-        if module != "-1":
-            cursor.execute("""
-                SELECT id, (SELECT name FROM Modul WHERE modul_id = Modul.id) module, Gruppe.name, Gruppe.limit, oeffentlich, betretbar, deadline, ort
-                FROM Gruppe
-                WHERE modul_id = :modul AND
-                    (Gruppe.name LIKE :bezeichnung OR ort LIKE :bezeichnung)
-            """, modul = module, bezeichnung = "%" + description + "%")
-        else:
-            cursor.execute("""
-                SELECT id, (SELECT name FROM Modul WHERE modul_id = Modul.id) module, Gruppe.name, Gruppe.limit, oeffentlich, betretbar, deadline, ort
-                FROM Gruppe
-                WHERE Gruppe.name LIKE :bezeichnung OR ort = :bezeichnung
-        """, bezeichnung = "%" + description + "%")
+        cursor.execute("""
+                SELECT  id,
+                        modul_id,
+                        (SELECT name FROM Modul WHERE modul_id = Modul.id) modul,
+                        g.name,
+                        (SELECT count(ersteller_id) FROM Gruppe WHERE id = g.id AND ersteller_id = :student) ist_ersteller,
+                        (SELECT count(student_id) FROM Gruppe_Student WHERE gruppe_id = g.id AND student_id = :student) ist_mitglied,
+                        (SELECT count(student_id) FROM Gruppe_Student WHERE gruppe_id = g.id) mitglieder,
+                        g.limit,
+                        oeffentlich,
+                        betretbar,
+                        deadline,
+                        ort
+                FROM Gruppe g
+                WHERE   (:modul = -1 OR modul_id = :modul) AND
+                        (g.name LIKE :bezeichnung OR ort LIKE :bezeichnung)
+                ORDER BY ist_mitglied, deadline DESC
+            """, student = session.get('student_id'), modul = module, bezeichnung = "%" + description + "%")
 
         cursor.rowfactory = lambda *args: dict(zip([d[0] for d in cursor.description], args))
         return cursor.fetchall()

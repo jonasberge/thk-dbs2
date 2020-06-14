@@ -9,9 +9,14 @@
         *, html {
             box-sizing: border-box;
         }
+
         body {
             margin: 0;
             padding: 0 1rem;
+        }
+
+        p {
+            margin: 0;
         }
 
         #nav-search-form {
@@ -30,7 +35,8 @@
     {% block body %}
 	<div>
 		Navigation:
-		<a href="/">Index</a>
+        <a href="/">Index</a>
+        <a href="/logout">Logout</a>
         <form id="nav-search-form" method="GET" action="/search">
             <input type="text" name="q" placeholder="Suche Gruppen" aria-label="Suche Gruppen">
             <button type="submit">Suchen</button>

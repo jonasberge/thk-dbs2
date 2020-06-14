@@ -56,35 +56,3 @@ def logout():
     session.clear()
     print(session.get('logged_in'))
     return redirect('/')
-
-def add_test_user():
-    db = get_db()
-
-    with db.cursor() as cursor:
-        cursor.execute(
-            """
-                INSERT INTO Fakultaet
-                (id, name, standort)
-                VALUES (:id, :name, :standort)
-            """,
-            [1, "Informatik", "Gummersbach"]
-        )
-
-        cursor.execute(
-            """
-                INSERT INTO Studiengang
-                (id, name, fakultaet_id, abschluss)
-                VALUES (:id, :name, :fakultaet, :abschluss)
-            """,
-            [1, "Informatik", 1, "BSC.INF"]
-        )
-
-        db.commit()
-
-        cursor.execute("""
-                INSERT INTO Student
-                (id, name, smail_adresse, studiengang_id, semester, passwort_hash)
-                VALUES (:id, :name, :mail, :studiengang, :semester, :pw)
-        """, [1, 'Dieter', 'dieter@smail.th-koeln.de', 1, 1, hashlib.md5("password".encode()).hexdigest()])
-
-        db.commit()

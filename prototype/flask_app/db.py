@@ -7,7 +7,9 @@ def get_db():
         g.db = cx_Oracle.connect(
             user     = current_app.config['DB_USER'],
             password = current_app.config['DB_PASS'],
-            dsn      = current_app.config['DB_DSN']
+            dsn      = current_app.config['DB_DSN'],
+            encoding="UTF-8",
+            nencoding="UTF-8"
         )
     return g.db
 

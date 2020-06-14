@@ -15,7 +15,13 @@ bp = Blueprint('groups', __name__)
 def index():
     if session.get('student_id') is None:
         return redirect('/login')
-    return render_template('index.html')
+
+    recent_messages = get_related_group_messages()
+    groups = get_my_groups()
+
+    print(recent_messages)
+
+    return render_template('index.html', Groups_len=len(groups), Groups=groups, Messages_len=len(recent_messages), Messages=recent_messages)
 
 
 @bp.route('/search')
@@ -45,12 +51,57 @@ def get_all_modules():
         """)
         return [ (mid, name) for mid, name in cursor ]
 
-def get_groups(module, description):
+def get_related_group_messages():
     db = get_db()
 
     with db.cursor() as cursor:
 
-        print(module)
+        cursor.execute("""
+                SELECT  id,
+                        gruppe_id,
+                        student_id as ersteller_id,
+                        (SELECT name FROM Student WHERE id = gb.student_id) ersteller,
+                        nachricht,
+                        datum,
+                        typ
+                FROM GruppenBeitrag gb
+                WHERE gruppe_id IN (SELECT gruppe_id FROM Gruppe_Student WHERE student_id = :student)
+                ORDER BY datum DESC
+            """, student = session.get('student_id'))
+
+        cursor.rowfactory = lambda *args: dict(zip([d[0] for d in cursor.description], args))
+        return cursor.fetchall()
+
+def get_my_groups():
+    db = get_db()
+
+    with db.cursor() as cursor:
+
+        cursor.execute("""
+                SELECT  id,
+                        modul_id,
+                        (SELECT name FROM Modul WHERE modul_id = Modul.id) modul,
+                        g.name,
+                        (SELECT count(ersteller_id) FROM Gruppe WHERE id = g.id AND ersteller_id = :student) ist_ersteller,
+                        (SELECT count(student_id) FROM Gruppe_Student WHERE gruppe_id = g.id AND student_id = :student) ist_mitglied,
+                        (SELECT count(student_id) FROM Gruppe_Student WHERE gruppe_id = g.id) mitglieder,
+                        g.limit,
+                        oeffentlich,
+                        betretbar,
+                        deadline,
+                        ort
+                FROM Gruppe g
+                WHERE :student IN (SELECT student_id FROM Gruppe_Student WHERE gruppe_id = g.id)
+                ORDER BY ist_mitglied, deadline DESC
+            """, student = session.get('student_id'))
+
+        cursor.rowfactory = lambda *args: dict(zip([d[0] for d in cursor.description], args))
+        return cursor.fetchall()
+
+def get_groups(module, description):
+    db = get_db()
+
+    with db.cursor() as cursor:
 
         cursor.execute("""
                 SELECT  id,

@@ -17,6 +17,7 @@ def add_test_data():
     add_test_modules()
     add_test_groups()
     add_test_group_members()
+    add_test_messages()
 
 tables_to_delete = [
     'GruppenEinladung',
@@ -202,6 +203,40 @@ def add_test_group_members():
                     VALUES (:gruppe, :student, SYSDATE)
                 """,
                 member
+            )
+
+        db.commit()
+
+import datetime
+from datetime import timedelta
+
+test_messages = [
+    # (id, gruppe_id, student_id, datum, nachricht)
+
+    [1, 1, 3, datetime.datetime.now() - timedelta(hours=3), "Ganz schön leer hier, lass noch jemand einladen".encode('utf-8')],
+    [2, 1, 4, datetime.datetime.now() - timedelta(hours=2), "Nee, lass mal lassen"],
+    [3, 1, 1, datetime.datetime.now() - timedelta(minutes=30), "Vielleicht später Frank".encode('utf-8')],
+
+    [4, 2, 10, datetime.datetime.now() - timedelta(hours=3), "Hi ihr beiden"],
+    [5, 2, 7, datetime.datetime.now() - timedelta(hours=2), "Hey"],
+    [6, 2, 8, datetime.datetime.now() - timedelta(hours=1, minutes=55), "Hi"],
+    [7, 2, 10, datetime.datetime.now() - timedelta(hours=1, minutes=30), "Möchten wir uns nach der nächsten Vorlesung mal irgendwo zusammensetzen?".encode('utf-8')],
+    [8, 2, 7, datetime.datetime.now() - timedelta(hours=1), "Gerne"],
+    [9, 2, 8, datetime.datetime.now() - timedelta(minutes=45), "Gerne. Vielleicht in der Kaffeteria? Kann aber erst 20 Minuten nach der Vorlesung da sein."]
+]
+
+def add_test_messages():
+    db = get_db()
+
+    with db.cursor() as cursor:
+        for message in test_messages:
+            cursor.execute(
+                """
+                    INSERT INTO GruppenBeitrag
+                    (id, gruppe_id, student_id, datum, nachricht)
+                    VALUES (:id, :gruppe, :student, :datum, :nachricht)
+                """,
+                message
             )
 
         db.commit()

@@ -14,8 +14,13 @@
 		margin-right: 1em;
 	}
 
-	.group-message p strong {
+	.group-message strong {
 		display: block;
+	}
+
+	.group-message i {
+		display: block;
+		color: dimgray;
 	}
 
 	.item-group {
@@ -48,12 +53,18 @@
                 <rect width="100%" height="100%" fill="blue"></rect><text x="50%" y="50%" fill="blue" dy=".3em">32x32</text></svg>
                 {% endif %}
 			<p>
-
 				{% if Messages[i].TYP.startswith('USER') %}
-				<strong>{{Messages[i].ERSTELLER}}</strong>
+
+				{% if Messages[i].ERSTELLER_ID == session.get('student_id') %}
+				<strong>Ich in {{Messages[i].GRUPPE}} ({{Messages[i].MODUL}})</strong>
 				{% else %}
-				<strong>Systemnachricht</strong>
+				<strong>{{Messages[i].ERSTELLER}} in {{Messages[i].GRUPPE}} ({{Messages[i].MODUL}})</strong>
 				{% endif %}
+
+				{% else %}
+				<strong>{{Messages[i].GRUPPE}} ({{Messages[i].MODUL}})</strong>
+				{% endif %}
+				<i>{{Messages[i].DATUM}}</i>
 				{{Messages[i].NACHRICHT}}
 			</p>
 		</div>

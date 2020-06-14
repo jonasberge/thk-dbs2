@@ -19,8 +19,6 @@ def index():
     recent_messages = get_related_group_messages()
     groups = get_my_groups()
 
-    print(recent_messages)
-
     return render_template('index.html', Groups_len=len(groups), Groups=groups, Messages_len=len(recent_messages), Messages=recent_messages)
 
 
@@ -59,6 +57,8 @@ def get_related_group_messages():
         cursor.execute("""
                 SELECT  id,
                         gruppe_id,
+                        (SELECT name FROM Gruppe WHERE id = gruppe_id) gruppe,
+                        (SELECT name FROM Modul WHERE id = (SELECT modul_id FROM Gruppe WHERE id = gruppe_id)) modul,
                         student_id as ersteller_id,
                         (SELECT name FROM Student WHERE id = gb.student_id) ersteller,
                         nachricht,
@@ -67,6 +67,7 @@ def get_related_group_messages():
                 FROM GruppenBeitrag gb
                 WHERE gruppe_id IN (SELECT gruppe_id FROM Gruppe_Student WHERE student_id = :student)
                 ORDER BY datum DESC
+                FETCH NEXT 5 ROWS ONLY
             """, student = session.get('student_id'))
 
         cursor.rowfactory = lambda *args: dict(zip([d[0] for d in cursor.description], args))

@@ -6,22 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %} - Lerngruppen</title>
     <style>
+        *, html {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0 1rem;
+        }
+
         #nav-search-form {
             display: inline-flex;
             flex-flow: row wrap;
             align-items: center;
         }
+
+        #nav-search-form input {
+            width: auto;
+        }
     </style>
     {% endblock %}
 </head>
 <body>
+    {% block body %}
 	<div>
 		Navigation:
 		<a href="/">Index</a>
-		<a href="/auth/login">Login</a>
-        <a href="/auth/register">Registrieren</a>
-        <form id="nav-search-form">
-            <input type="text" placeholder="Suche Gruppen" aria-label="Suche Gruppen">
+        <form id="nav-search-form" method="GET" action="/search">
+            <input type="text" name="q" placeholder="Suche Gruppen" aria-label="Suche Gruppen">
             <button type="submit">Suchen</button>
         </form>
 	</div>
@@ -36,5 +47,6 @@
     {% endif %}
     {% endwith %}
     {% block content %}{% endblock %}
+    {% endblock %}
 </body>
 </html>

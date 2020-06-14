@@ -39,8 +39,8 @@ def create_app(test_config=None):
     db.init_app(app)
     cache.init_app(app)
 
-    from . import auth, groups
-    app.register_blueprint(auth.bp)
+    from . import login, groups
+    app.register_blueprint(login.bp)
     app.register_blueprint(groups.bp)
 
     return app

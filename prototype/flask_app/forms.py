@@ -10,13 +10,11 @@ class LoginForm(FlaskForm):
     stay_logged_in = BooleanField ('Eingeloggt bleiben')
     submit         = SubmitField  ('Anmelden')
 
+class SimpleSearchForm(FlaskForm):
+    q   =   StringField ('Gruppe Suchen',   validators=[validators.required(), validators.length(max=64)], render_kw={"placeholder": "Gruppe Suchen"})
 
-class RegisterForm(FlaskForm):
-    name      = StringField   ('Name',         validators=[validators.required(), validators.length(max=64)])
-    course_id = SelectField   ('Studiengang',  validators=[validators.required()], coerce=int)
-    email     = StringField   ('E-Mail',       validators=[validators.required(), validators.length(max=64)])
-    password  = PasswordField ('Passwort',     validators=[validators.required(), validators.length(max=32)])
-    birthday  = DateField     ('Geburtsdatum', validators=[validators.optional()])
+class SearchForm(FlaskForm):
+    module_id   =   SelectField ('Modul',           coerce=int)
+    q           =   StringField ('Suche',     validators=[validators.length(max=64)], render_kw={"placeholder": "Bezeichnung oder Ort"})
 
-    stay_logged_in = BooleanField ('Eingeloggt bleiben')
-    submit         = SubmitField  ('Registrieren')
+    submit         = SubmitField  ('Suche')

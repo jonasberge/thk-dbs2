@@ -32,16 +32,19 @@ def login():
             flash('Login requested for user {}, stay_logged_in={}'.format(
                 user[1], form.stay_logged_in.data))
 
+            # will be added // if student and student.password == password return redirect profile
+
             return redirect('/')
         else:
             flash('User not found')
 
     return render_template('login.html', title='Anmelden', form=form)
 
+
 def auth(email, password):
     db = get_db()
 
-    #add_test_user()
+    # add_test_user()
 
     with db.cursor() as cursor:
         cursor.execute("""
@@ -50,6 +53,15 @@ def auth(email, password):
         """, [email, password])
 
         return cursor.fetchone()
+
+
+@bp.route('/profile')
+def profile():
+    if not user:
+        return redirect(url_for('login'))
+
+    return render_template('profile.html')
+
 
 @bp.route('/logout')
 def logout():

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Index{% endblock %}
+{% block head %}
+  {{ super() }}
+  <style type="text/css">
+    .group-message {
+		display: flex;
+		flex-flow: row wrap;
+		align-items: center;
+	}
+
+	.group-message svg {
+		margin-right: 1em;
+	}
+
+	.group-message strong {
+		display: block;
+	}
+
+	.group-message i {
+		display: block;
+		color: dimgray;
+	}
+
+	.item-group {
+		display: flex;
+		flex-flow: row wrap;
+        justify-content: start;
+        margin: 1em 0;
+	}
+
+	.item-group svg {
+		margin-right: 1em;
+	}
+
+	.item-group p strong {
+		display: block;
+	}
+  </style>
+{% endblock %}
+
+{% block content %}
+	<h1>Startseite</h1>
+	<section>
+		<h2>Letzte Aktivität</h2>
+		{%for i in range(0, Messages_len)%}
+		<div class="group-message">
+			<svg width="32" height="32" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: 32x32"><title>Placeholder</title>
+				{% if Messages[i].ID % 2 == 0 %}
+                <rect width="100%" height="100%" fill="red"></rect><text x="50%" y="50%" fill="red" dy=".3em">32x32</text></svg>
+                {% else %}
+                <rect width="100%" height="100%" fill="blue"></rect><text x="50%" y="50%" fill="blue" dy=".3em">32x32</text></svg>
+                {% endif %}
+			<p>
+				{% if Messages[i].TYP.startswith('USER') %}
+
+				{% if Messages[i].ERSTELLER_ID == session.get('student_id') %}
+				<strong>Ich in {{Messages[i].GRUPPE}} ({{Messages[i].MODUL}})</strong>
+				{% else %}
+				<strong>{{Messages[i].ERSTELLER}} in {{Messages[i].GRUPPE}} ({{Messages[i].MODUL}})</strong>
+				{% endif %}
+
+				{% else %}
+				<strong>{{Messages[i].GRUPPE}} ({{Messages[i].MODUL}})</strong>
+				{% endif %}
+				<i>{{Messages[i].DATUM}}</i>
+				{{Messages[i].NACHRICHT}}
+			</p>
+		</div>
+		{%endfor%}
+	</section>
+	<section>
+		<h2>Meine Gruppen</h2>
+		{%for i in range(0, Groups_len)%}
+		<div class="item-group">
+            <svg width="32" height="32" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img" aria-label="Placeholder: 32x32"><title>Placeholder</title>
+                {% if Groups[i].MODUL_ID % 2 == 0 %}
+                <rect width="100%" height="100%" fill="red"></rect><text x="50%" y="50%" fill="red" dy=".3em">32x32</text></svg>
+                {% else %}
+                <rect width="100%" height="100%" fill="blue"></rect><text x="50%" y="50%" fill="blue" dy=".3em">32x32</text></svg>
+                {% endif %}
+			<p>
+				<strong>{{Groups[i].NAME}}</strong>
+                    {%for key, value in Groups[i].items()%}
+                    {{key}}: {{value}}<br>
+                    {%endfor%}
+			</p>
+        </div>
+        {%endfor%}
+	</section>
+{% endblock %}
+

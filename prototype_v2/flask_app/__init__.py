@@ -44,4 +44,6 @@ def create_app(test_config=None):
     app.register_blueprint(login.bp)
     app.register_blueprint(groups.bp)
 
+    login.login_manager.init_app(app)
+
     return app

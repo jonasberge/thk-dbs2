@@ -4,6 +4,7 @@ from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask_login import current_user
 
 from flask_app.db import get_db
 from flask_app.cache import cache
@@ -13,7 +14,8 @@ bp = Blueprint('groups', __name__)
 
 @bp.route('/')
 def index():
-    if session.get('student_id') is None:
+    # if session.get('student_id') is None:
+    if not current_user.is_authenticated:
         return redirect('/login')
 
     recent_messages = get_related_group_messages()
@@ -68,7 +70,7 @@ def get_related_group_messages():
                 WHERE gruppe_id IN (SELECT gruppe_id FROM Gruppe_Student WHERE student_id = :student)
                 ORDER BY datum DESC
                 FETCH NEXT 5 ROWS ONLY
-            """, student = session.get('student_id'))
+            """, student = current_user.id) # student = session.get('student_id'))
 
         cursor.rowfactory = lambda *args: dict(zip([d[0] for d in cursor.description], args))
         return cursor.fetchall()
@@ -94,7 +96,7 @@ def get_my_groups():
                 FROM Gruppe g
                 WHERE :student IN (SELECT student_id FROM Gruppe_Student WHERE gruppe_id = g.id)
                 ORDER BY ist_mitglied, deadline DESC
-            """, student = session.get('student_id'))
+            """, student = current_user.id) # session.get('student_id'))
 
         cursor.rowfactory = lambda *args: dict(zip([d[0] for d in cursor.description], args))
         return cursor.fetchall()
@@ -121,7 +123,8 @@ def get_groups(module, description):
                 WHERE   (:modul = -1 OR modul_id = :modul) AND
                         (g.name LIKE :bezeichnung OR ort LIKE :bezeichnung)
                 ORDER BY ist_mitglied, deadline DESC
-            """, student = session.get('student_id'), modul = module, bezeichnung = "%" + description + "%")
+            """, student = current_user.id, # session.get('student_id'),
+                 modul = module, bezeichnung = "%" + description + "%")
 
         cursor.rowfactory = lambda *args: dict(zip([d[0] for d in cursor.description], args))
         return cursor.fetchall()

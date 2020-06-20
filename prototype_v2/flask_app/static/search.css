@@ -1,0 +1,32 @@
+.group-message {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+}
+
+.group-message svg {
+    margin-right: 1em;
+}
+
+.group-message p strong {
+    display: block;
+}
+
+.item-group {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: start;
+    margin: 1em 0;
+}
+
+.item-group svg {
+    margin-right: 1em;
+}
+
+.item-group p strong {
+    display: block;
+}
+
+#search-header {
+    display: none;
+}

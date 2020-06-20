@@ -22,7 +22,7 @@ class SimpleSearchForm(FlaskForm):
 class SearchForm(FlaskForm):
     module_id = SelectField('Modul', coerce=int)
     q = StringField('Suche', validators=[validators.length(max=64)], render_kw={"placeholder": "Suchbegriff"})
-    frei = IntegerField('Freie Plätze', widget=NumberInput(min=0, max=9), default=1)
+    free = IntegerField('Freie Plätze', widget=NumberInput(min=0, max=9), default=1)
     submit = SubmitField('Suche')
 
 

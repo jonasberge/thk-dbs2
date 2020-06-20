@@ -41,12 +41,14 @@ def search():
 
     module = request.args.get('module_id', '-1')
     q = request.args.get('q', '')
+    free = request.args.get('free', '1')
 
     form.module_id.default = module
     form.process()
     form.q.data = q
+    form.free.data = free
 
-    groups = get_groups(module, q)
+    groups = get_groups(module, q, free)
 
     return render_template('search.html', title='Suche', form=form, len=len(groups), Groups=groups)
 
@@ -116,7 +118,7 @@ def get_my_groups():
         return cursor.fetchall()
 
 @cache.memoize(timeout=60*10)
-def get_groups(module, description):
+def get_groups(module, description, free):
     db = get_db()
 
     with db.cursor() as cursor:
@@ -136,10 +138,13 @@ def get_groups(module, description):
                         ort
                 FROM Gruppe g
                 WHERE   (:modul = -1 OR modul_id = :modul) AND
-                        (g.name LIKE :bezeichnung OR ort LIKE :bezeichnung)
+                        (g.name LIKE :bezeichnung OR ort LIKE :bezeichnung) AND
+                        (g.limit IS NULL OR g.limit - (SELECT count(student_id) FROM Gruppe_Student WHERE gruppe_id = g.id) >= :freie)
                 ORDER BY ist_mitglied, deadline DESC
             """, student = current_user.id, # session.get('student_id'),
-                 modul = module, bezeichnung = "%" + description + "%")
+                 modul = module,
+                 bezeichnung = "%" + description + "%",
+                 freie = free)
 
         cursor.rowfactory = lambda *args: dict(zip([d[0] for d in cursor.description], args))
         return cursor.fetchall()

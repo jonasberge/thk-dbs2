@@ -19,6 +19,7 @@ def search():
 
     form.module_id.data = request.args.get('module_id')
     form.q.data = request.args.get('q')
+    form.free.data = request.args.get('free')
 
     groups = get_groups()
 

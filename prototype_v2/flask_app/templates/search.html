@@ -3,41 +3,7 @@
 {% block title %}Index{% endblock %}
 {% block head %}
   {{ super() }}
-  <style type="text/css">
-    .group-message {
-		display: flex;
-		flex-flow: row wrap;
-		align-items: center;
-	}
-
-	.group-message svg {
-		margin-right: 1em;
-	}
-
-	.group-message p strong {
-		display: block;
-	}
-
-	.item-group {
-		display: flex;
-		flex-flow: row wrap;
-        justify-content: start;
-        margin: 1em 0;
-	}
-
-	.item-group svg {
-		margin-right: 1em;
-	}
-
-	.item-group p strong {
-		display: block;
-    }
-
-    #search-header {
-        display: none;
-    }
-
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='search.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -45,9 +11,9 @@
     <form method="GET" action="{{ url_for('groups.search') }}">
             {{ form.hidden_tag() }}
             {{ form.module_id }}
-            {{ form.q() }} <br>
-            {{ form.frei.label }}
-            {{ form.frei }}
+            {{ form.q() }}<br>
+            {{ form.free.label }}
+            {{ form.free }} oder mehr
         {{ form.submit() }}
     </form>
 	<section>

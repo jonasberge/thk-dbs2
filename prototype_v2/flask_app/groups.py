@@ -12,6 +12,11 @@ from flask_app.forms import LoginForm, SearchForm
 
 bp = Blueprint('groups', __name__)
 
+
+@bp.route('/local')
+def local():
+    return render_template('local.html')
+
 @bp.route('/')
 def index():
     # if session.get('student_id') is None:
@@ -20,6 +25,8 @@ def index():
 
     recent_messages = get_related_group_messages()
     groups = get_my_groups()
+
+    print(groups)
 
     return render_template('index.html', Groups_len=len(groups), Groups=groups, Messages_len=len(recent_messages), Messages=recent_messages)
 
@@ -51,6 +58,7 @@ def get_all_modules():
         """)
         return [ (mid, name) for mid, name in cursor ]
 
+@cache.cached(timeout=60)
 def get_related_group_messages():
     db = get_db()
 
@@ -75,6 +83,9 @@ def get_related_group_messages():
         cursor.rowfactory = lambda *args: dict(zip([d[0] for d in cursor.description], args))
         return cursor.fetchall()
 
+# TODO: invalidate cache when entering a group.
+# FIXME: doesn't work for me (vonas) without key_prefix (?!)
+@cache.cached(timeout=60*10, key_prefix='1')
 def get_my_groups():
     db = get_db()
 
@@ -101,6 +112,7 @@ def get_my_groups():
         cursor.rowfactory = lambda *args: dict(zip([d[0] for d in cursor.description], args))
         return cursor.fetchall()
 
+@cache.memoize(timeout=60*10)
 def get_groups(module, description):
     db = get_db()
 

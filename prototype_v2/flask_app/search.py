@@ -16,15 +16,11 @@ bp = Blueprint('search', __name__)
 @bp.route('/search')
 def search():
     form = SearchForm()
-    run_sql_script()
-    #form.module_id.choices = get_all_modules()
 
     form.module_id.data = request.args.get('module_id')
     form.q.data = request.args.get('q')
 
     groups = get_groups()
-
-    print(groups)
 
     return render_template('search.html', title='Suche', form=form, len=len(groups), Groups=groups)
 

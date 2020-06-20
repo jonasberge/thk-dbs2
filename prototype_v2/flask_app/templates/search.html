@@ -33,34 +33,22 @@
 		display: block;
     }
 
-    form input, form select {
-        width:100%;
+    #search-header {
+        display: none;
     }
 
   </style>
 {% endblock %}
 
 {% block content %}
-    <h1>Suche</h1>
-    <form method="GET" action="/search">
-        <div>
+    <br>
+    <form method="GET" action="{{ url_for('groups.search') }}">
             {{ form.hidden_tag() }}
-        <div>
-            {{ form.module_id.label }}<br>
             {{ form.module_id }}
-            {% for error in form.module_id.errors %}
-                <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </div>
-        <div>
-            {{ form.q.label }}<br>
-            {{ form.q() }}
-            {% for error in form.module_id.errors %}
-                <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </div>
+            {{ form.q() }} <br>
+            {{ form.frei.label }}
+            {{ form.frei }}
         {{ form.submit() }}
-        </div>
     </form>
 	<section>
         <h2>Gruppen</h2>

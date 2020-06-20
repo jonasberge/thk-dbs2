@@ -18,6 +18,7 @@ login_manager = LoginManager()
 
 
 @login_manager.user_loader
+@cache.memoize(timeout=60*60)
 def load_user(user_id):
     return User.get(int(user_id))
 
@@ -146,6 +147,7 @@ def edit_profile():
             flash('Your changes have been saved.')
         else:
             flash('An unknown error occurred')
+        cache.delete_memoized(load_user)
         return redirect(url_for('login.profile'))
     elif request.method == 'GET':
         # form.email.data = current_user.smail_adresse

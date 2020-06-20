@@ -1,5 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, DateField, SelectField, TextAreaField
+from wtforms import ( StringField, PasswordField, BooleanField, SubmitField,
+                      DateField, SelectField, TextAreaField, IntegerField )
+from wtforms.widgets.html5 import NumberInput
 import wtforms.validators as validators
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length
 
@@ -19,8 +21,8 @@ class SimpleSearchForm(FlaskForm):
 
 class SearchForm(FlaskForm):
     module_id = SelectField('Modul', coerce=int)
-    q = StringField('Suche', validators=[validators.length(max=64)], render_kw={"placeholder": "Bezeichnung oder Ort"})
-
+    q = StringField('Suche', validators=[validators.length(max=64)], render_kw={"placeholder": "Suchbegriff"})
+    frei = IntegerField('Freie Plätze', widget=NumberInput(min=0, max=9), default=1)
     submit = SubmitField('Suche')
 
 

@@ -19,19 +19,19 @@ table td {
     text-align: right;
 }
 
-::-webkit-input-placeholder {
+input.search::-webkit-input-placeholder {
    text-align: center;
 }
 
-:-moz-placeholder { /* Firefox 18- */
+input.search:-moz-placeholder { /* Firefox 18- */
    text-align: center;
 }
 
-::-moz-placeholder {  /* Firefox 19+ */
+input.search::-moz-placeholder {  /* Firefox 19+ */
    text-align: center;
 }
 
-:-ms-input-placeholder {
+input.search:-ms-input-placeholder {
    text-align: center;
 }
 
@@ -55,4 +55,30 @@ input.search {
     display: inline;
     width: 50%;
     min-width: 140px
+}
+
+div.flash {
+    border: 1px solid grey;
+    border-radius: 2px;
+    padding: 4px;
+    width: 50%;
+    min-width: 400px;
+
+    margin: 0 auto;
+}
+
+div.flash.message {
+    background-color: #ffd;
+}
+
+div.flash.success {
+    background-color: #cfc;
+}
+
+div.flash.failure {
+    background-color: #fcc;
+}
+
+div.flash-box {
+    text-align:center;
 }

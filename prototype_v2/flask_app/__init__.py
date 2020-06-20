@@ -19,7 +19,8 @@ def create_app(test_config=None):
         SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev',
         DB_DSN     = dsn_str,
         DB_USER    = os.environ.get('ORACLE_USER'),
-        DB_PASS    = os.environ.get('ORACLE_PASS')
+        DB_PASS    = os.environ.get('ORACLE_PASS'),
+        WTF_CSRF_ENABLED = False
     )
 
     if test_config is None:

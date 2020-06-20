@@ -1,0 +1,160 @@
+
+div.debug > div {
+  border: 1px solid red;
+  border-radius: 2px;
+  padding: 5px;
+  margin-bottom: 10px;
+}
+
+div.debug p.title {
+  margin-top: 0px;
+}
+
+div.debug p.element {
+  border: 1px solid grey;
+  border-radius: 2px;
+}
+
+
+
+#message-box {
+  border: 1px solid grey;
+  border-radius: 2px;
+  padding: 5px;
+  box-shadow: 0px 0px 4px 2px #aaa;
+}
+
+div.message {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+span.author .underlined {
+  text-decoration: underline;
+}
+
+
+
+/* Form logic with checkbox magic */
+
+.edit-button {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10+ and Edge */
+  user-select: none; /* Standard syntax */
+
+  font-family: arial;
+  font-size: .85em;
+  background-color: #fff;
+  border: 1px solid grey;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.message-edit-input-container {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 0 10px 0 0;
+  margin: 0;
+  display: none;
+}
+
+.message-edit-input {
+  height: 12px;
+}
+
+.edit-button:hover {
+  box-shadow: 0px 0px 2px 2px #ddd;
+  border: 1px solid #666;
+}
+
+.edit-button:active {
+  /*border: 1px solid #ddd;*/
+  background-color: #eef;
+}
+
+div.message .start:not(:hover) {
+  visibility: hidden;
+}
+
+div.message:hover {
+  background-color: #ddd;
+}
+
+div.message:hover .start {
+  visibility: unset;
+}
+
+.edit-checkbox:checked ~ #message-edit-form .right .start {
+  display: none;
+}
+
+.stop {
+  display: none;
+}
+
+.edit-checkbox:checked ~ #message-edit-form .right .stop {
+  display: inline;
+}
+
+.edit-checkbox {
+  display: none;
+}
+
+.edit-checkbox:checked ~ .message-text {
+  display: none;
+}
+
+
+
+
+/* Inline input field with maximum width */
+
+div.message {
+  overflow: hidden;
+}
+
+.message-edit-input {
+  width: 100%;
+}
+
+.message-edit-input-container {
+  display: none;
+  overflow: hidden;
+}
+
+.edit-checkbox:checked ~ #message-edit-form .message-edit-input-container {
+  display: block;
+}
+
+div.message .left {
+  float: left;
+}
+
+div.message .right {
+  float: right;
+}
+
+
+
+#group-message-form {
+  overflow: hidden;
+}
+
+#group-message-form input#message {
+  width: 100%;
+}
+
+#group-message-form span {
+  display: block;
+  overflow: hidden;
+  padding-right:10px;
+}
+
+#group-message-form label {
+  float: left;
+  padding-right: 5px;
+}
+
+#group-message-form input[type=submit] {
+  float: right;
+}

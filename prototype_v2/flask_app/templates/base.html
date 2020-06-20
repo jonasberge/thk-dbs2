@@ -3,9 +3,10 @@
 <head>
     {% block head %}
 
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
 
     <title>{% block title %}{% endblock %} - Lerngruppen</title>
 
@@ -13,15 +14,23 @@
 </head>
 <body>
     {% block body %}
-	<div>
-		Navigation:
-        <a href="/">Index</a>
-        <a href="/logout">Logout</a>
-        <form id="nav-search-form" method="GET" action="/search">
-            <input type="text" name="q" placeholder="Suche Gruppen" aria-label="Suche Gruppen">
-            <button type="submit">Suchen</button>
-        </form>
-	</div>
+    <table>
+      <tr>
+        <td class='left'>
+            <a href="{{ url_for('groups.index') }}">Startseite</a>
+        </td>
+        <td class='center'>
+            <form id="nav-search-form" method="GET" action="/search">
+                <input class="search"type="text" name="q" placeholder="Suchbegriff eingeben" aria-label="Suche Gruppen">
+                <button type="submit">Suchen</button>
+            </form>
+        </td>
+        <td class='right'>
+            <a href="{{ url_for('login.profile') }}">Profil</a>
+            <a href="{{ url_for('login.logout') }}">Logout</a>
+        </td>
+      </tr>
+    </table>
     <hr>
     {% with messages = get_flashed_messages() %}
     {% if messages %}

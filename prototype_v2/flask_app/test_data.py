@@ -213,16 +213,16 @@ from datetime import timedelta
 test_messages = [
     # (id, gruppe_id, student_id, datum, nachricht)
 
-    [1, 1, 3, datetime.datetime.now() + timedelta(hours=1), "Ganz schön leer hier, lass noch jemand einladen"],
-    [2, 1, 4, datetime.datetime.now() + timedelta(hours=2), "Nee, lass mal lassen"],
-    [3, 1, 1, datetime.datetime.now() + timedelta(hours=2, minutes=30), "Vielleicht später Frank"],
+    [1, 1, 3, datetime.datetime.now() + timedelta(seconds=1), "Ganz schön leer hier, lass noch jemand einladen"],
+    [2, 1, 4, datetime.datetime.now() + timedelta(seconds=2), "Nee, lass mal lassen"],
+    [3, 1, 1, datetime.datetime.now() + timedelta(seconds=3), "Vielleicht später Frank"],
 
-    [4, 2, 10, datetime.datetime.now() + timedelta(hours=1), "Hi ihr beiden"],
-    [5, 2, 7, datetime.datetime.now() + timedelta(hours=2), "Hey"],
-    [6, 2, 8, datetime.datetime.now() + timedelta(hours=3, minutes=5), "Hi"],
-    [7, 2, 10, datetime.datetime.now() + timedelta(hours=3, minutes=35), "Möchten wir uns nach der nächsten Vorlesung mal irgendwo zusammensetzen?"],
-    [8, 2, 7, datetime.datetime.now() + timedelta(hours=4), "Gerne"],
-    [9, 2, 8, datetime.datetime.now() + timedelta(hours=4, minutes=15), "Gerne. Vielleicht in der Kaffeteria? Kann aber erst 20 Minuten nach der Vorlesung da sein."]
+    [4, 2, 10, datetime.datetime.now() + timedelta(seconds=1), "Hi ihr beiden"],
+    [5, 2, 7, datetime.datetime.now() + timedelta(seconds=2), "Hey"],
+    [6, 2, 8, datetime.datetime.now() + timedelta(seconds=3), "Hi"],
+    [7, 2, 10, datetime.datetime.now() + timedelta(seconds=4), "Möchten wir uns nach der nächsten Vorlesung mal irgendwo zusammensetzen?"],
+    [8, 2, 7, datetime.datetime.now() + timedelta(seconds=5), "Gerne"],
+    [9, 2, 8, datetime.datetime.now() + timedelta(seconds=6), "Gerne. Vielleicht in der Kaffeteria? Kann aber erst 20 Minuten nach der Vorlesung da sein."]
 ]
 
 def add_test_messages():

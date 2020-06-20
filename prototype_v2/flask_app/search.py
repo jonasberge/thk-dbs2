@@ -25,7 +25,7 @@ def search():
 
     return render_template('search.html', title='Suche', form=form, len=len(groups), Groups=groups)
 
-@cache.cached(timeout=60*60)
+@cache.cached(timeout=60*60*12)
 def get_all_modules():
     db = get_db()
 
@@ -36,7 +36,7 @@ def get_all_modules():
         """)
         return [ (mid, name) for mid, name in cursor ]
 
-@cache.cached(timeout=60*60)
+@cache.cached(timeout=60*10)
 def get_groups():
     db = get_db()
 

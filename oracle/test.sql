@@ -35,6 +35,8 @@ SELECT 1, 'Frank', 'frank@th-koeln.de', 'h', 'Ich mag Informatik.', 1, 1, SYSDAT
 INSERT INTO Gruppe (ID, MODUL_ID, ERSTELLER_ID, NAME, BETRETBAR)
 VALUES (1, 1, 1 /* Frank */, 'Mathe-Boyz', '1');
 
+COMMIT;
+
 
 INSERT INTO StudentVerifizierung (student_id, kennung)
 VALUES (1, 'idkman');

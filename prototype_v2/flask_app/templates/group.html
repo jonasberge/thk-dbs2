@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Gruppe{% endblock %}
+
+{% block content %}
+  <style>
+
+div.debug > div {
+  border: 1px solid red;
+  border-radius: 2px;
+  padding: 5px;
+  margin-bottom: 10px;
+}
+
+div.debug p.title {
+  margin-top: 0px;
+}
+
+div.debug p.element {
+  border: 1px solid grey;
+  border-radius: 2px;
+}
+
+  </style>
+
+  <div class="debug">
+
+  <div>is_admin: {{ is_admin }}</div>
+  <div>is_member: {{ is_member }}</div>
+
+  <div>
+  <p class="title"><b>GRUPPE</b><p>
+  {% for key, value in group.items() %}
+    {{key}}: {{value}}<br>
+  {% endfor %}
+  </div>
+
+  <div>
+  <p class="title"><b>MITGLIEDER</b></p>
+  {% for member in members %}
+    <p class="element">
+    {% for key, value in member.items() %}
+      {{key}}: {{value}}<br>
+    {% endfor %}
+    </p>
+  {% endfor %}
+  </p>
+  </div>
+
+  <br><br>
+
+
+
+<style>
+
+#message-box {
+  border: 1px solid grey;
+  border-radius: 2px;
+  padding: 5px;
+  box-shadow: 0px 0px 4px 2px #aaa;
+}
+
+div.message {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+span.author .underlined {
+  text-decoration: underline;
+}
+
+
+
+/* Form logic with checkbox magic */
+
+.edit-button {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10+ and Edge */
+  user-select: none; /* Standard syntax */
+
+  font-family: arial;
+  font-size: .85em;
+  background-color: #fff;
+  border: 1px solid grey;
+  border-radius: 3px;
+  padding: 0 4px;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+.message-edit-input-container {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 0;
+  margin: 0;
+  display: none;
+}
+
+.edit-button:hover {
+  box-shadow: 0px 0px 2px 2px #ddd;
+  border: 1px solid #666;
+}
+
+.edit-button:active {
+  /*border: 1px solid #ddd;*/
+  background-color: #eef;
+}
+
+div.message .start:not(:hover) {
+  visibility: hidden;
+}
+
+div.message:hover {
+  background-color: #ddd;
+}
+
+div.message:hover .start {
+  visibility: unset;
+}
+
+.edit-checkbox:checked ~ #message-edit-form .right .start {
+  display: none;
+}
+
+.stop {
+  display: none;
+}
+
+.edit-checkbox:checked ~ #message-edit-form .right .stop {
+  display: inline;
+}
+
+.edit-checkbox {
+  display: none;
+}
+
+.edit-checkbox:checked ~ .message-text {
+  display: none;
+}
+
+
+
+
+/* Inline input field with maximum width */
+
+div.message {
+  overflow: hidden;
+}
+
+.message-edit-input {
+  width: 100%;
+}
+
+.message-edit-input-container {
+  display: none;
+  overflow: hidden;
+}
+
+.edit-checkbox:checked ~ #message-edit-form .message-edit-input-container {
+  display: block;
+}
+
+div.message .left {
+  float: left;
+}
+
+div.message .right {
+  float: right;
+}
+
+</style>
+
+
+  <div id="message-box" class="message-box">
+    {% for message in messages %}
+      <div class="message">
+
+        <div class="left">
+          <i>{{ message['DATUM'] }}</i>
+          {% set is_self = message['STUDENT_ID'] == group['ERSTELLER_ID'] %}
+          {% if message['TYP'] == 'USER' %}
+            {% set extra_class = 'underlined' if is_self else '' %}
+            <span class="author">
+              <b><span class="{{ extra_class }}">{{ message['STUDENT'] }}</span>:&nbsp;</b>
+            </span>
+          {% else %}
+            &ndash;
+          {% endif %}
+        </div>
+
+        {% if is_self %}
+          <input class="edit-checkbox" type="checkbox" id="edit-{{ loop.index0 }}">
+        {% endif %}
+
+        <span class="message-text">{{ message['NACHRICHT'] }}</span>
+
+        {% if is_self %}
+
+        {% set edit_message_form = EditGroupMessageForm() %}
+
+        <form style="display: inline" id="message-edit-form" method="POST" action="{{ url_for('groups.edit_group_message', group_id=group['ID'], message_id=message['ID']) }}">
+
+          <div class="right">
+            <div class="start">
+              <label class="edit-label-edit" for="edit-{{ loop.index0 }}">
+                <span class="edit-button">Bearbeiten</span>
+              </label>
+            </div>
+            <div class="stop">
+              <input type="submit" value="Speichern">
+              <label class="edit-label-cancel" for="edit-{{ loop.index0 }}">
+                <span class="edit-button">Abbrechen</span>
+              </label>
+            </div>
+          </div>
+
+          <span class="message-edit-input-container">
+            {{ edit_message_form.message(class_='message-edit-input', value=message['NACHRICHT'], autocomplete='off') }}
+          </span>
+
+          <!--<span class="message-edit-input-container"><input class="message-edit-input" autocomplete="off" id="edited_message" maxlength="1023" minlength="1" name="edited_message" required="" type="text" value="{{ message['NACHRICHT'] }}"></span>-->
+
+        </form>
+
+        {% endif %}
+      </div>
+    {% endfor %}
+    <hr>
+
+    <style>
+
+    #group-message-form {
+      overflow: hidden;
+    }
+
+    #group-message-form input#message {
+      width: 100%;
+    }
+
+    #group-message-form span {
+      display: block;
+      overflow: hidden;
+      padding-right:10px;
+    }
+
+    #group-message-form label {
+      float: left;
+      padding-right: 5px;
+    }
+
+    #group-message-form input[type=submit] {
+      float: right;
+    }
+
+    </style>
+
+    {{ group.id }}
+
+    <form id="group-message-form" method="POST" action="{{ url_for('groups.group_message', group_id=group['ID']) }}">
+      {{ message_form.submit() }}
+      {{ message_form.message.label }}
+      <span>{{ message_form.message(autocomplete='off') }}</span>
+      {% for error in message_form.message.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}
+    </form>
+  </div>
+
+{% endblock %}

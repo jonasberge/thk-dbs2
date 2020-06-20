@@ -147,7 +147,7 @@ def edit_profile():
             flash('Deine Änderungen wurden gespeichert.', category='success')
         else:
             flash('Ein unbekannter Fehler ist aufgetreten.', category='failure')
-        cache.delete_memoized(load_user)
+        cache.delete_memoized(load_user, current_user.id)
         return redirect(url_for('login.profile'))
     elif request.method == 'GET':
         # form.email.data = current_user.smail_adresse

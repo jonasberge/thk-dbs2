@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import ( StringField, PasswordField, BooleanField, SubmitField,
                       DateField, SelectField, TextAreaField, IntegerField )
+from wtforms.widgets import HiddenInput
 from wtforms.widgets.html5 import NumberInput
 import wtforms.validators as validators
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length
@@ -29,3 +30,18 @@ class SearchForm(FlaskForm):
 class EditProfileForm(FlaskForm):
     about_me = TextAreaField('Beschreibung', render_kw={'maxlength': '255'}, validators=[Length(min=0, max=255)])
     submit = SubmitField('Speichern')
+
+
+class GroupMessageForm(FlaskForm):
+    message = StringField('Verfasse eine Nachricht', render_kw={'minlength': '1', 'maxlength': '1023'},
+                        validators=[Length(min=0, max=1023), validators.InputRequired()])
+    submit = SubmitField('Senden')
+
+
+class EditGroupMessageForm(FlaskForm):
+    # message_id = IntegerField(widget=HiddenInput())
+    message = StringField('Bearbeitete Nachricht', render_kw={'minlength': '1', 'maxlength': '1023'},
+                        validators=[Length(min=0, max=1023), validators.InputRequired()])
+    submit = SubmitField('Speichern')
+
+

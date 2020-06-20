@@ -27,7 +27,7 @@
                 <rect width="100%" height="100%" fill="blue"></rect><text x="50%" y="50%" fill="blue" dy=".3em">32x32</text></svg>
                 {% endif %}
 			<p>
-				<strong>{{Groups[i].NAME}}</strong>
+				<a href="{{ url_for('groups.group', group_id=Groups[i].ID) }}"><strong>{{Groups[i].NAME}}</strong></a>
                     {%for key, value in Groups[i].items()%}
                     {{key}}: {{value}}<br>
                     {%endfor%}

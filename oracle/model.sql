@@ -202,7 +202,7 @@ CREATE TABLE GruppenBeitrag (
     student_id INTEGER, -- Darf NULL sein, falls Nutzer gelöscht wurde.
     datum      DATE                   NOT NULL,
     nachricht  VARCHAR2(1024)         NOT NULL,
-    typ        CHAR(8) DEFAULT 'USER' NOT NULL,
+    typ        VARCHAR(8) DEFAULT 'USER' NOT NULL,
     FOREIGN KEY (gruppe_id)
         REFERENCES Gruppe (id),
     FOREIGN KEY (student_id)

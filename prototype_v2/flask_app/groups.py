@@ -15,7 +15,10 @@ bp = Blueprint('groups', __name__)
 
 @bp.route('/local')
 def local():
-    return render_template('local.html')
+    flash('test message!')
+    flash('an error occured!', category='failure')
+    return render_template('base.html')
+
 
 @bp.route('/')
 def index():

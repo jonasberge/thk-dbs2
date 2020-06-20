@@ -144,16 +144,16 @@ def edit_profile():
         current_user.profil_beschreibung = form.about_me.data
         print('->', current_user.profil_beschreibung)
         if current_user.save():
-            flash('Your changes have been saved.')
+            flash('Deine Änderungen wurden gespeichert.', category='success')
         else:
-            flash('An unknown error occurred')
+            flash('Ein unbekannter Fehler ist aufgetreten.', category='failure')
         cache.delete_memoized(load_user)
         return redirect(url_for('login.profile'))
     elif request.method == 'GET':
         # form.email.data = current_user.smail_adresse
         form.about_me.data = current_user.profil_beschreibung
     return render_template('edit_profile.html', title='Profile Bearbeiten',
-                           form=form)
+                           user=current_user, form=form)
 
 
 @bp.route('/logout')

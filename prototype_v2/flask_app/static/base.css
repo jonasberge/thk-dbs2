@@ -58,12 +58,12 @@ input.search {
 }
 
 div.flash {
+    text-align: center;
     border: 1px solid grey;
     border-radius: 2px;
     padding: 4px;
     width: 50%;
     min-width: 400px;
-
     margin: 0 auto;
 }
 
@@ -81,4 +81,37 @@ div.flash.failure {
 
 div.flash-box {
     text-align:center;
+}
+
+.flash-wrapper {
+    width: 40%;
+    margin: 4px auto;
+    text-align: left;
+}
+
+.toggle {
+    display: none;
+}
+
+.toggle-label {
+    cursor: pointer;
+    font-family: arial;
+    position: absolute;
+    margin: 8px;
+    font-size: 12px;
+    color: grey;
+    transition: all 150ms ease;
+}
+
+.toggle-label:hover {
+    color: black;
+    text-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
+    transition: all 150ms ease;
+    font-weight: bold;
+}
+
+.toggle:checked ~ .toggle-controlled,
+.toggle:checked ~ .toggle-label,
+.toggle:checked {
+    display: none;
 }

@@ -27,5 +27,5 @@ class SearchForm(FlaskForm):
 
 
 class EditProfileForm(FlaskForm):
-    about_me = TextAreaField('About me', validators=[Length(min=0, max=140)])
-    submit = SubmitField('Submit')
+    about_me = TextAreaField('Beschreibung', render_kw={'maxlength': '255'}, validators=[Length(min=0, max=255)])
+    submit = SubmitField('Speichern')

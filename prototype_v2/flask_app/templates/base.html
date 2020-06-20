@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
     <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
 
-    <title>{% block title %}{% endblock %} - Lerngruppen</title>
+    <title>{% block title %}{% endblock %}Lerngruppen</title>
 
     {% endblock %}
 </head>
@@ -33,12 +33,22 @@
       </tr>
     </table>
     <hr>
+
+    <style>
+
+
+    </style>
+
     <div class="flash-box">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-            <div class="flash {{ category }}">
-                <span class="flash">{{ message }}</span>
+            <div class="flash-wrapper">
+                <input type="checkbox" id="toggle-{{ loop.index0 }}" class="toggle">
+                <label for="toggle-{{ loop.index0 }}" class="toggle-label" title="Schließen">X</label>
+                <div class="toggle-controlled flash {{ category }}">
+                    <span class="flash">{{ message }}</span>
+                </div>
             </div>
             {% endfor %}
         {% endif %}

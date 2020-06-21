@@ -53,6 +53,9 @@
 
         {% if is_self %}
           <input class="edit-checkbox" type="checkbox" id="edit-{{ loop.index0 }}">
+          <form style="display: none" id="message-delete-form" method="POST" action="{{ url_for('groups.remove_group_message', group_id=group['ID'], message_id=message['ID']) }}">
+            <input class="delete-submit" type="submit" id="delete-{{ loop.index0 }}">
+          </form>
         {% endif %}
 
         <span class="message-text">{{ message['NACHRICHT'] }}</span>
@@ -67,6 +70,9 @@
             <div class="start">
               <label class="edit-label-edit" for="edit-{{ loop.index0 }}">
                 <span class="edit-button">Bearbeiten</span>
+              </label>
+              <label class="edit-label-delete" for="delete-{{ loop.index0 }}">
+                <span class="edit-button delete-button">Löschen</span>
               </label>
             </div>
             <div class="stop">

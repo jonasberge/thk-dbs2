@@ -59,7 +59,7 @@ def insert_group_message(group_id, student_id, message):
 
 
 
-@bp.route('/group/<int:group_id>/message/<int:message_id>', methods=('POST',))
+@bp.route('/group/<int:group_id>/message/<int:message_id>/edit', methods=('POST',))
 def edit_group_message(group_id, message_id):
     form = EditGroupMessageForm()
     if form.validate_on_submit():
@@ -84,6 +84,38 @@ def update_group_message(group_id, message_id, message):
             SET nachricht = :nachricht
             WHERE id = :beitrag_id
         """, beitrag_id=message_id, nachricht=message)
+
+        if cursor.rowcount == 0:
+            return False
+
+    db.commit()
+    cache.delete_memoized(get_messages, group_id)
+    return True
+
+
+
+
+@bp.route('/group/<int:group_id>/message/<int:message_id>/delete', methods=('POST',))
+def remove_group_message(group_id, message_id):
+    message = get_cached_message(group_id, message_id)
+    if not message or message['STUDENT_ID'] != current_user.id:
+        raise Exception('This message cannot be deleted.')
+
+    if delete_group_message(group_id, message_id):
+        flash('Die Nachricht wurde gelöscht.', category='success')
+    else:
+        flash('Ein Fehler ist aufgetreten.', category='failure')
+    return redirect(url_for('groups.group', group_id=group_id))
+
+
+def delete_group_message(group_id, message_id):
+    db = get_db()
+
+    with db.cursor() as cursor:
+        cursor.execute("""
+            DELETE FROM GruppenBeitrag
+            WHERE id = :beitrag_id
+        """, beitrag_id=message_id)
 
         if cursor.rowcount == 0:
             return False

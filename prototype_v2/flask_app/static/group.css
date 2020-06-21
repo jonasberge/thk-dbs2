@@ -50,6 +50,10 @@ span.author .underlined {
   cursor: pointer;
 }
 
+.edit-button.delete-button {
+  background-color: #faa;
+}
+
 .message-edit-input-container {
   font-family: inherit;
   font-size: 1em;

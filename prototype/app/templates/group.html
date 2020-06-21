@@ -34,7 +34,9 @@
 
         {% if not flags['before_join'] and not is_before_join %}
           {% set _ = flags.__setitem__('before_join', True) %}
-          <hr>
+          {% if loop.index0 > 0 %}
+            <hr>
+          {% endif %}
         {% endif %}
 
         {% set is_self = message['STUDENT_ID'] == current_user.id %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Gruppe{% endblock %}
+{% block title %}{{ group['NAME'] }}{% endblock %}
 {% block head %}
   {{ super() }}
   <link rel="stylesheet" href="{{ url_for('static', filename='group.css') }}">
@@ -8,102 +8,121 @@
 
 {% block content %}
 
-  <div class="debug">
-
-  <div>is_admin: {{ is_admin }}</div>
-  <div>is_member: {{ is_member }}</div>
-
   <div>
-  <p class="title"><b>GRUPPE</b><p>
   {% for key, value in group.items() %}
     {{key}}: {{value}}<br>
   {% endfor %}
   </div>
 
-  <div>
-  <p class="title"><b>MITGLIEDER</b></p>
-  {% for member in members %}
-    <p class="element">
-    {% for key, value in member.items() %}
-      {{key}}: {{value}}<br>
+  <p id="member-list">
+    <span class="title"><u>Mitglieder</u>:</span>
+    {% for member in members %}
+      <span class="{{ 'owner' if member['IST_ERSTELLER'] == 1 else '' }}">
+        <a href="{{ url_for('login.other_profile', user_id=member['ID']) }}">{{ member['NAME'] }}{% if member['ID'] == current_user.id %} (du){% endif %}</a>{{ ',' if loop.index0 < (members | length) - 1 else '' }}
+      </span>
     {% endfor %}
-    </p>
-  {% endfor %}
   </p>
-  </div>
 
-  <br><br>
 
-  <div id="message-box" class="message-box">
-    {% for message in messages %}
-      <div class="message">
+  {% if is_member %}
+  <div id="member-box">
+    <div id="message-box" class="message-box">
+      {% for message in messages %}
+        <div class="message">
 
-        <div class="left">
-          <i>{{ message['DATUM'] }}</i>
-          {% set is_self = message['STUDENT_ID'] == group['ERSTELLER_ID'] %}
-          {% if message['TYP'] == 'USER' %}
-            {% set extra_class = 'underlined' if is_self else '' %}
-            <span class="author">
-              <b><span class="{{ extra_class }}">{{ message['STUDENT'] }}</span>:&nbsp;</b>
-            </span>
-          {% else %}
-            &ndash;
-          {% endif %}
-        </div>
-
-        {% if is_self %}
-          <input class="edit-checkbox" type="checkbox" id="edit-{{ loop.index0 }}">
-          <form style="display: none" id="message-delete-form" method="POST" action="{{ url_for('groups.remove_group_message', group_id=group['ID'], message_id=message['ID']) }}">
-            <input class="delete-submit" type="submit" id="delete-{{ loop.index0 }}">
-          </form>
-        {% endif %}
-
-        <span class="message-text">{{ message['NACHRICHT'] }}</span>
-
-        {% if is_self %}
-
-        {% set edit_message_form = EditGroupMessageForm() %}
-
-        <form style="display: inline" id="message-edit-form" method="POST" action="{{ url_for('groups.edit_group_message', group_id=group['ID'], message_id=message['ID']) }}">
-
-          <div class="right">
-            <div class="start">
-              <label class="edit-label-edit" for="edit-{{ loop.index0 }}">
-                <span class="edit-button">Bearbeiten</span>
-              </label>
-              <label class="edit-label-delete" for="delete-{{ loop.index0 }}">
-                <span class="edit-button delete-button">Löschen</span>
-              </label>
-            </div>
-            <div class="stop">
-              {{ message_form.submit() }}
-              <label class="edit-label-cancel" for="edit-{{ loop.index0 }}">
-                <span class="edit-button">Abbrechen</span>
-              </label>
-            </div>
+          <div class="left">
+            <i>{{ message['DATUM'] }}</i>
+            {% set is_self = message['STUDENT_ID'] == group['ERSTELLER_ID'] %}
+            {% if message['TYP'] == 'USER' %}
+              {% set extra_class = 'underlined' if is_self else '' %}
+              <span class="author">
+                <b><span class="{{ extra_class }}">{{ message['STUDENT'] }}</span>:&nbsp;</b>
+              </span>
+            {% else %}
+              &ndash;&nbsp;
+            {% endif %}
           </div>
 
-          <span class="message-edit-input-container">
-            {{ edit_message_form.message(class_='message-edit-input', value=message['NACHRICHT'], autocomplete='off') }}
-          </span>
+          {% if is_self %}
+            <input class="edit-checkbox" type="checkbox" id="edit-{{ loop.index0 }}">
+          {% endif %}
 
-          <!--<span class="message-edit-input-container"><input class="message-edit-input" autocomplete="off" id="edited_message" maxlength="1023" minlength="1" name="edited_message" required="" type="text" value="{{ message['NACHRICHT'] }}"></span>-->
+          {% if is_self or (is_admin and message['TYP'] == 'USER') %}
+            <form style="display: none" id="message-delete-form" method="POST" action="{{ url_for('groups.remove_group_message', group_id=group['ID'], message_id=message['ID']) }}">
+              <input class="delete-submit" type="submit" id="delete-{{ loop.index0 }}">
+            </form>
+          {% endif %}
 
-        </form>
+          <span class="message-text">{{ message['NACHRICHT'] }}</span>
 
-        {% endif %}
-      </div>
-    {% endfor %}
-    <hr>
+          {% if is_self or (is_admin and message['TYP'] == 'USER') %}
 
-    <form id="group-message-form" method="POST" action="{{ url_for('groups.group_message', group_id=group['ID']) }}">
-      {{ message_form.submit() }}
-      {{ message_form.message.label }}
-      <span>{{ message_form.message(autocomplete='off') }}</span>
-      {% for error in message_form.message.errors %}
-        <span style="color: red;">[{{ error }}]</span>
+          {% set edit_message_form = EditGroupMessageForm() %}
+
+          <form style="display: inline" id="message-edit-form" method="POST" action="{{ url_for('groups.edit_group_message', group_id=group['ID'], message_id=message['ID']) }}">
+
+            <div class="right">
+              <div class="start">
+                {% if is_self %}
+                <label class="edit-label-edit" for="edit-{{ loop.index0 }}">
+                  <span class="edit-button">Bearbeiten</span>
+                </label>
+                {% endif %}
+
+                <label class="edit-label-delete" for="delete-{{ loop.index0 }}">
+                  <span class="edit-button delete-button">Löschen</span>
+                </label>
+              </div>
+              <div class="stop">
+                {{ edit_message_form.submit() }}
+                <label class="edit-label-cancel" for="edit-{{ loop.index0 }}">
+                  <span class="edit-button">Abbrechen</span>
+                </label>
+              </div>
+            </div>
+
+            <span class="message-edit-input-container">
+              {{ edit_message_form.message(class_='message-edit-input', value=message['NACHRICHT'], autocomplete='off') }}
+            </span>
+
+            <!--<span class="message-edit-input-container"><input class="message-edit-input" autocomplete="off" id="edited_message" maxlength="1023" minlength="1" name="edited_message" required="" type="text" value="{{ message['NACHRICHT'] }}"></span>-->
+
+          </form>
+
+          {% endif %}
+        </div>
       {% endfor %}
-    </form>
-  </div>
+      <hr>
+
+      <form id="group-message-form" method="POST" action="{{ url_for('groups.group_message', group_id=group['ID']) }}">
+        {{ message_form.submit() }}
+        {{ message_form.message.label }}
+        <span>{{ message_form.message(autocomplete='off') }}</span>
+        {% for error in message_form.message.errors %}
+          <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+      </form>
+    </div>
+
+    <p id="leave-group-box">
+        <form id="group-leave-form" method="POST" action="{{ url_for('groups.leave_group', group_id=group['ID']) }}">
+          <input type="submit" value="Gruppe verlassen">
+        </form>
+    </p>
+
+    {% else %}
+
+    <div id="no-member-box">
+      Du bist nicht in dieser Gruppe.
+      {% if group['BETRETBAR'] == '1' and (not group['limit'] or group['limit'] - (members | length) > 0) %}
+        <form id="group-enter-form" method="POST" action="{{ url_for('groups.enter_group', group_id=group['ID']) }}">
+          <input type="submit" value="Gruppe beitreten">
+        </form>
+      {% else %}
+        <input type="submit" value="Beitrittsanfrage senden">
+      {% endif %}
+    </div>
+
+    {% endif %}
 
 {% endblock %}

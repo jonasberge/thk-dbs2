@@ -48,7 +48,7 @@ def delete_tables():
 
 test_fakultaet = [
     # (id, name, standort)
-    [1, "Informatik", "Gummersbach"]
+    [1, "F10 - Fakultät für Informatik und Ingenieurwissenschaften", "Gummersbach"]
 ]
 
 def add_test_faculties():

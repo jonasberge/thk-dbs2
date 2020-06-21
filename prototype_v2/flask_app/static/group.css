@@ -1,18 +1,6 @@
 
-div.debug > div {
-  border: 1px solid red;
-  border-radius: 2px;
-  padding: 5px;
-  margin-bottom: 10px;
-}
-
-div.debug p.title {
-  margin-top: 0px;
-}
-
-div.debug p.element {
-  border: 1px solid grey;
-  border-radius: 2px;
+#member-list .owner {
+  font-weight: bold;
 }
 
 
@@ -161,4 +149,10 @@ div.message .right {
 
 #group-message-form input[type=submit] {
   float: right;
+}
+
+
+
+#group-enter-form {
+  display: inline;
 }

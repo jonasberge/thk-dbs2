@@ -1,0 +1,21 @@
+
+#description {
+    border: 1px solid grey;
+    border-radius: 2px;
+    padding: 4px;
+    font-family: monospace;
+}
+
+#description.hint {
+    font-family: inherit;
+    color: grey;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+div.profile p {
+    margin-top: 1px;
+    margin-bottom: 4px;
+}

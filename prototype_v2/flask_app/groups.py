@@ -33,13 +33,124 @@ def index():
 
 
 
+def is_group_member(group_id):
+    members = get_members(group_id)
+
+    for member in members:
+        if member['ID'] == current_user.id:
+            return True
+
+    return False
+
+
+
+
+@bp.route('/group/<int:group_id>')
+def group(group_id):
+    group = get_group(group_id) or abort(404)
+    members = get_members(group_id)
+    messages = get_messages(group_id)
+
+    is_admin = group['ERSTELLER_ID'] == current_user.id
+    is_member = is_admin or is_group_member(group_id)
+
+    message_form = GroupMessageForm()
+
+    return render_template('group.html',
+        group_id=group_id, group=group, members=members, messages=messages,
+        message_form=message_form, EditGroupMessageForm=EditGroupMessageForm,
+        is_admin=is_admin, is_member=is_member)
+
+
+
+
+@bp.route('/group/<int:group_id>/join', methods=('POST',))
+def enter_group(group_id):
+    group = get_group(group_id) or abort(404)
+
+    if group['BETRETBAR'] == 0:
+        raise Exception('You cannnot join this group directly.')
+    if is_group_member(group_id):
+        raise Exception('You are already member of this group.')
+
+    if insert_group_member(group_id, current_user.id):
+        flash('Du bist der Gruppe erfolgreich beigetreten.', category='success')
+    else:
+        flash('Ein Fehler ist aufgetreten.', category='failure')
+
+    return redirect(url_for('groups.group', group_id=group_id))
+
+
+def insert_group_member(group_id, student_id):
+    db = get_db()
+
+    with db.cursor() as cursor:
+        cursor.execute("""
+            INSERT INTO Gruppe_Student (gruppe_id, student_id, beitrittsdatum)
+            VALUES (:gruppe_id, :student_id, SYSDATE)
+        """, gruppe_id=group_id, student_id=student_id)
+
+        if cursor.rowcount == 0:
+            return False
+
+    db.commit()
+    cache.delete_memoized(get_group)
+    cache.delete_memoized(get_groups)
+    cache.delete_memoized(get_members)
+    cache.delete_memoized(get_messages)
+
+    return True
+
+
+
+@bp.route('/group/<int:group_id>/leave', methods=('POST',))
+def leave_group(group_id):
+    group = get_group(group_id) or abort(404)
+
+    if is_group_member(group_id):
+        if delete_group_member(group_id, current_user.id):
+            flash('Du hast die Gruppe verlassen', category='success')
+        else:
+            flash('Ein Fehler ist aufgetreten', category='failure')
+
+    return redirect(url_for('groups.group', group_id=group_id))
+
+
+def delete_group_member(group_id, student_id):
+    db = get_db()
+
+    with db.cursor() as cursor:
+        cursor.execute("""
+            DELETE FROM Gruppe_Student
+            WHERE gruppe_id = :gruppe_id
+             AND student_id = :student_id
+        """, gruppe_id=group_id, student_id=student_id)
+
+        if cursor.rowcount == 0:
+            return False
+
+    db.commit()
+    cache.delete_memoized(get_group)
+    cache.delete_memoized(get_groups)
+    cache.delete_memoized(get_members)
+    cache.delete_memoized(get_messages)
+
+    return True
+
+
 
 
 
 @bp.route('/group/<int:group_id>/message', methods=('POST',))
 def group_message(group_id):
+    get_group(group_id) or abort(404)
+
     form = GroupMessageForm()
     if form.validate_on_submit():
+
+        if not is_group_member(group_id):
+            raise Exception('You cannot send messages in this group.')
+
         insert_group_message(group_id, current_user.id, form.message.data)
         flash('Deine Nachricht wurde erfolgreich abgesendet.', category='success')
         return redirect(url_for('groups.group', group_id=group_id))
@@ -98,7 +209,13 @@ def update_group_message(group_id, message_id, message):
 @bp.route('/group/<int:group_id>/message/<int:message_id>/delete', methods=('POST',))
 def remove_group_message(group_id, message_id):
     message = get_cached_message(group_id, message_id)
-    if not message or message['STUDENT_ID'] != current_user.id:
+    group = get_group(group_id) or abort(404)
+
+    is_user_message = message['TYP'] == 'USER'
+    is_admin = group['ERSTELLER_ID'] == current_user.id
+
+    if not message or not is_user_message or \
+            (not is_admin and message['STUDENT_ID'] != current_user.id):
         raise Exception('This message cannot be deleted.')
 
     if delete_group_message(group_id, message_id):
@@ -125,28 +242,6 @@ def delete_group_message(group_id, message_id):
     return True
 
 
-
-
-
-@bp.route('/group/<int:group_id>')
-def group(group_id):
-    group = get_group(group_id) or abort(404)
-    members = get_members(group_id)
-    messages = get_messages(group_id)
-
-    is_admin = group['ERSTELLER_ID'] == current_user.id
-    is_member = False
-    for member in members:
-        if member['ID'] == current_user.id:
-            is_member = True
-            break
-
-    message_form = GroupMessageForm()
-
-    return render_template('group.html',
-        group_id=group_id, group=group, members=members, messages=messages,
-        message_form=message_form, EditGroupMessageForm=EditGroupMessageForm,
-        is_admin=is_admin, is_member=is_member)
 
 
 @bp.route('/search')
@@ -238,21 +333,22 @@ def get_groups(module, description, free):
     with db.cursor() as cursor:
 
         cursor.execute("""
-                SELECT  id,
-                        modul_id,
-                        (SELECT name FROM Modul WHERE modul_id = Modul.id) modul,
+                SELECT  g.id,
+                        g.modul_id,
+                        m.name as modul,
                         g.name,
                         (SELECT count(ersteller_id) FROM Gruppe WHERE id = g.id AND ersteller_id = :student) ist_ersteller,
                         (SELECT count(student_id) FROM Gruppe_Student WHERE gruppe_id = g.id AND student_id = :student) ist_mitglied,
                         (SELECT count(student_id) FROM Gruppe_Student WHERE gruppe_id = g.id) mitglieder,
                         g.limit,
-                        oeffentlich,
-                        betretbar,
-                        deadline,
-                        ort
+                        g.betretbar,
+                        g.deadline,
+                        g.ort
                 FROM Gruppe g
-                WHERE   (:modul = -1 OR modul_id = :modul) AND
-                        (g.name LIKE :bezeichnung OR ort LIKE :bezeichnung) AND
+                INNER JOIN Modul m ON g.modul_id = m.id
+                WHERE   oeffentlich = '1' AND
+                        (:modul = -1 OR modul_id = :modul) AND
+                        (LOWER(g.name) LIKE LOWER(:bezeichnung) OR LOWER(g.ort) LIKE LOWER(:bezeichnung) OR LOWER(m.name) LIKE LOWER(:bezeichnung)) AND
                         (g.limit IS NULL OR g.limit - (SELECT count(student_id) FROM Gruppe_Student WHERE gruppe_id = g.id) >= :freie)
                 ORDER BY ist_mitglied, deadline DESC
             """, student = current_user.id, # session.get('student_id'),
@@ -296,9 +392,10 @@ def get_members(group_id):
     with db.cursor() as cursor:
 
         cursor.execute("""
-            SELECT s.id, s.name
+            SELECT s.id, s.name, (CASE WHEN g.ersteller_id = gs.student_id THEN 1 ELSE 0 END) ist_ersteller
             FROM Gruppe_Student gs
             INNER JOIN Student s ON gs.student_id = s.id
+            INNER JOIN Gruppe g ON gs.gruppe_id = g.id
             WHERE gs.gruppe_id = :gruppe_id
         """, gruppe_id = group_id)
 

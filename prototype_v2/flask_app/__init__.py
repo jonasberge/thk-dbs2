@@ -15,6 +15,8 @@ def create_app(test_config=None):
                           os.environ.get('ORACLE_PORT'),
                           os.environ.get('ORACLE_SID'))
 
+    print(dsn_str)
+
     app.config.from_mapping(
         SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev',
         DB_DSN     = dsn_str,

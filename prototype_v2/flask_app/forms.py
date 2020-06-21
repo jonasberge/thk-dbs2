@@ -33,14 +33,14 @@ class EditProfileForm(FlaskForm):
 
 
 class GroupMessageForm(FlaskForm):
-    message = StringField('Verfasse eine Nachricht', render_kw={'minlength': '1', 'maxlength': '1023'},
+    message = StringField('Nachricht', render_kw={'minlength': '1', 'maxlength': '1023'},
                         validators=[Length(min=0, max=1023), validators.InputRequired()])
     submit = SubmitField('Senden')
 
 
 class EditGroupMessageForm(FlaskForm):
     # message_id = IntegerField(widget=HiddenInput())
-    message = StringField('Bearbeitete Nachricht', render_kw={'minlength': '1', 'maxlength': '1023'},
+    message = StringField('Bearbeite deine Nachricht', render_kw={'minlength': '1', 'maxlength': '1023'},
                         validators=[Length(min=0, max=1023), validators.InputRequired()])
     submit = SubmitField('Speichern')
 

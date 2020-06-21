@@ -172,7 +172,7 @@ def auth(email, password):
 #    return render_template('index.html')
 
 
-@bp.route('/edit_profile', methods=['GET', 'POST'])
+@bp.route('/profile/edit', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
     form = EditProfileForm()
@@ -191,7 +191,7 @@ def edit_profile():
     elif request.method == 'GET':
         # form.email.data = current_user.smail_adresse
         form.about_me.data = current_user.profil_beschreibung
-    return render_template('edit_profile.html', title='Profile Bearbeiten',
+    return render_template('profile/edit.html', title='Profile Bearbeiten',
                            user=current_user, form=form)
 
 

@@ -118,8 +118,8 @@ def add_test_users():
 
 test_modules = [
     # (id, name, dozent, semester)
-    [1, "Mathematik 1 (MA1)", "Wolfgang Konen", 1],
-    [2, "Betriebswirtschaftslehre 1 (BWL1)", "Monika Engelen", 1]
+    [1, "Mathematik 1", "Wolfgang Konen", 1],
+    [2, "Betriebswirtschaftslehre 1", "Monika Engelen", 1]
 ]
 
 def add_test_modules():

@@ -128,8 +128,8 @@ def login():
     if form.validate_on_submit():
         user = User.get_by_mail(form.email.data)
         if user is None or not user.check_password(form.password.data.encode()):
-            flash('Invalid mail address or password')
-            return redirect(url_for('login'))
+            flash('Ungültige Mail-Adresse oder Passwort', category='failure')
+            return redirect(url_for('login.login'))
         login_user(user, remember=form.stay_logged_in.data)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':

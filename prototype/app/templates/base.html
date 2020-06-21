@@ -13,6 +13,7 @@
 </head>
 <body>
     {% block body %}
+    {% block header %}
     <table>
       <tr>
         <td class='left'>
@@ -32,6 +33,7 @@
       </tr>
     </table>
     <hr>
+    {% endblock %}
 
     <div class="flash-box">
         {% with messages = get_flashed_messages(with_categories=true) %}

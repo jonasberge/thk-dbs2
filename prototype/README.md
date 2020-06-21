@@ -34,4 +34,4 @@ Voraussetzung ist, dass Python 3 installiert ist.
     flask run
     ```
 
-5. Öffnen Sie `http://localhost:5000/` in Ihrem Browser.
+5. Öffnen Sie [`http://localhost:5000`](http://localhost:5000) in Ihrem Browser.

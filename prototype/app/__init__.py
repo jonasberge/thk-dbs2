@@ -2,7 +2,9 @@ import os
 
 import cx_Oracle as ora
 from flask import Flask
+from flask_minify import minify
 from dotenv import load_dotenv
+
 
 def create_app(test_config=None):
     # create and configure the app
@@ -48,5 +50,6 @@ def create_app(test_config=None):
     app.register_blueprint(groups.bp)
 
     login.login_manager.init_app(app)
+    minify(app=app, html=True, js=True, cssless=True)
 
     return app

@@ -13,13 +13,6 @@ from flask_app.forms import LoginForm, SearchForm, GroupMessageForm, EditGroupMe
 bp = Blueprint('groups', __name__)
 
 
-@bp.route('/local')
-def local():
-    flash('test message!')
-    flash('an error occured!', category='failure')
-    return render_template('base.html')
-
-
 @bp.route('/')
 def index():
     # if session.get('student_id') is None:
@@ -424,7 +417,6 @@ def get_messages(group_id):
 # get_messages will always be called before this function.
 # thus a call to get_messages will land a cache hit and be really fast.
 def get_cached_message(group_id, message_id):
-    print(get_messages(group_id))
     for message in get_messages(group_id):
         if message['ID'] == message_id:
             return message

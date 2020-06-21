@@ -43,8 +43,6 @@ class User(UserMixin):
         self.fakultaet_name = fakultaet_name
         self.fakultaet_standort = fakultaet_standort
 
-        print(self.__dict__)
-
     @classmethod
     def get(cls, user_id):
         db = get_db()
@@ -95,7 +93,6 @@ class User(UserMixin):
         db = get_db()
 
         with db.cursor() as cursor:
-            print('mydict', self.__dict__)
             cursor.execute("""
                 UPDATE Student
                 SET name = :name,

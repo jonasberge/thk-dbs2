@@ -23,16 +23,26 @@
     {% endfor %}
   </p>
 
-
   {% if is_member %}
+
+  {% set flags = {'before_join': False} %}
+
   <div id="member-box">
     <div id="message-box" class="message-box">
       {% for message in messages %}
-        <div class="message">
+        {% set is_before_join =  message['DATUM'] < self_member['BEITRITTSDATUM'] %}
+
+        {% if not flags['before_join'] and not is_before_join %}
+          {% set _ = flags.__setitem__('before_join', True) %}
+          <hr>
+        {% endif %}
+
+        {% set is_self = message['STUDENT_ID'] == current_user.id %}
+
+        <div class="message{{ ' before_join' if is_before_join else '' }}">
 
           <div class="left">
             <i>{{ message['DATUM'] }}</i>
-            {% set is_self = message['STUDENT_ID'] == group['ERSTELLER_ID'] %}
             {% if message['TYP'] == 'USER' %}
               {% set extra_class = 'underlined' if is_self else '' %}
               <span class="author">
@@ -48,7 +58,7 @@
           {% endif %}
 
           {% if is_self or (is_admin and message['TYP'] == 'USER') %}
-            <form style="display: none" id="message-delete-form" method="POST" action="{{ url_for('groups.remove_group_message', group_id=group['ID'], message_id=message['ID']) }}">
+            <form class="message-delete-form" id="message-delete-form-{{ loop.index0 }}" method="POST" action="{{ url_for('groups.remove_group_message', group_id=group['ID'], message_id=message['ID']) }}">
               <input class="delete-submit" type="submit" id="delete-{{ loop.index0 }}">
             </form>
           {% endif %}
@@ -59,7 +69,7 @@
 
           {% set edit_message_form = EditGroupMessageForm() %}
 
-          <form style="display: inline" id="message-edit-form" method="POST" action="{{ url_for('groups.edit_group_message', group_id=group['ID'], message_id=message['ID']) }}">
+          <form class="message-edit-form" id="message-edit-form-{{ loop.index0 }}" method="POST" action="{{ url_for('groups.edit_group_message', group_id=group['ID'], message_id=message['ID']) }}">
 
             <div class="right">
               <div class="start">
@@ -74,7 +84,7 @@
                 </label>
               </div>
               <div class="stop">
-                {{ edit_message_form.submit() }}
+                {{ edit_message_form.submit(id="submit-"+loop.index0|string) }}
                 <label class="edit-label-cancel" for="edit-{{ loop.index0 }}">
                   <span class="edit-button">Abbrechen</span>
                 </label>
@@ -82,7 +92,7 @@
             </div>
 
             <span class="message-edit-input-container">
-              {{ edit_message_form.message(class_='message-edit-input', value=message['NACHRICHT'], autocomplete='off') }}
+              {{ edit_message_form.message(id="message-"+loop.index0|string, class_='message-edit-input', value=message['NACHRICHT'], autocomplete='off') }}
             </span>
 
             <!--<span class="message-edit-input-container"><input class="message-edit-input" autocomplete="off" id="edited_message" maxlength="1023" minlength="1" name="edited_message" required="" type="text" value="{{ message['NACHRICHT'] }}"></span>-->

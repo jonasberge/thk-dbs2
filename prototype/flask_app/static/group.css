@@ -17,6 +17,10 @@ div.message {
   margin-bottom: 0;
 }
 
+div.message.before_join {
+  color: #666;
+}
+
 span.author .underlined {
   text-decoration: underline;
 }
@@ -76,7 +80,7 @@ div.message:hover .start {
   visibility: unset;
 }
 
-.edit-checkbox:checked ~ #message-edit-form .right .start {
+.edit-checkbox:checked ~ .message-edit-form .right .start {
   display: none;
 }
 
@@ -84,7 +88,7 @@ div.message:hover .start {
   display: none;
 }
 
-.edit-checkbox:checked ~ #message-edit-form .right .stop {
+.edit-checkbox:checked ~ .message-edit-form .right .stop {
   display: inline;
 }
 
@@ -114,7 +118,7 @@ div.message {
   overflow: hidden;
 }
 
-.edit-checkbox:checked ~ #message-edit-form .message-edit-input-container {
+.edit-checkbox:checked ~ .message-edit-form .message-edit-input-container {
   display: block;
 }
 
@@ -127,6 +131,14 @@ div.message .right {
 }
 
 
+
+.message-delete-form {
+  display: none;
+}
+
+.message-edit-form {
+  display: inline;
+}
 
 #group-message-form {
   overflow: hidden;

@@ -46,13 +46,19 @@ def group(group_id):
 
     is_admin = group['ERSTELLER_ID'] == current_user.id
     is_member = is_admin or is_group_member(group_id)
+    self_member = None
+
+    if is_member:
+        for member in members:
+            if member['ID'] == current_user.id:
+                self_member = member
 
     message_form = GroupMessageForm()
 
     return render_template('group.html',
         group_id=group_id, group=group, members=members, messages=messages,
         message_form=message_form, EditGroupMessageForm=EditGroupMessageForm,
-        is_admin=is_admin, is_member=is_member)
+        is_admin=is_admin, is_member=is_member, self_member=self_member)
 
 
 
@@ -392,7 +398,7 @@ def get_members(group_id):
     with db.cursor() as cursor:
 
         cursor.execute("""
-            SELECT s.id, s.name, (CASE WHEN g.ersteller_id = gs.student_id THEN 1 ELSE 0 END) ist_ersteller
+            SELECT s.id, s.name, (CASE WHEN g.ersteller_id = gs.student_id THEN 1 ELSE 0 END) ist_ersteller, beitrittsdatum
             FROM Gruppe_Student gs
             INNER JOIN Student s ON gs.student_id = s.id
             INNER JOIN Gruppe g ON gs.gruppe_id = g.id

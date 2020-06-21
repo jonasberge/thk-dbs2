@@ -3,6 +3,7 @@ click==7.1.2
 cx-Oracle==7.3.0
 Flask==1.1.2
 Flask-Caching==1.9.0
+Flask-Login==0.5.0
 Flask-RESTful==0.3.8
 Flask-WTF==0.14.3
 itsdangerous==1.1.0

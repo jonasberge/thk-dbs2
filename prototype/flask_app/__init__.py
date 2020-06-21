@@ -15,11 +15,14 @@ def create_app(test_config=None):
                           os.environ.get('ORACLE_PORT'),
                           os.environ.get('ORACLE_SID'))
 
+    print(dsn_str)
+
     app.config.from_mapping(
         SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev',
         DB_DSN     = dsn_str,
         DB_USER    = os.environ.get('ORACLE_USER'),
-        DB_PASS    = os.environ.get('ORACLE_PASS')
+        DB_PASS    = os.environ.get('ORACLE_PASS'),
+        WTF_CSRF_ENABLED = False
     )
 
     if test_config is None:
@@ -43,5 +46,7 @@ def create_app(test_config=None):
     from . import login, groups
     app.register_blueprint(login.bp)
     app.register_blueprint(groups.bp)
+
+    login.login_manager.init_app(app)
 
     return app

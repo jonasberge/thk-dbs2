@@ -1,66 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}Index{% endblock %}
+{% block title %}Suche{% endblock %}
 {% block head %}
   {{ super() }}
-  <style type="text/css">
-    .group-message {
-		display: flex;
-		flex-flow: row wrap;
-		align-items: center;
-	}
-
-	.group-message svg {
-		margin-right: 1em;
-	}
-
-	.group-message p strong {
-		display: block;
-	}
-
-	.item-group {
-		display: flex;
-		flex-flow: row wrap;
-        justify-content: start;
-        margin: 1em 0;
-	}
-
-	.item-group svg {
-		margin-right: 1em;
-	}
-
-	.item-group p strong {
-		display: block;
-    }
-
-    form input, form select {
-        width:100%;
-    }
-
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='search.css') }}">
 {% endblock %}
 
 {% block content %}
-    <h1>Suche</h1>
-    <form method="GET" action="/search">
-        <div>
+    <br>
+    <form method="GET" action="{{ url_for('groups.search') }}">
             {{ form.hidden_tag() }}
-        <div>
-            {{ form.module_id.label }}<br>
             {{ form.module_id }}
-            {% for error in form.module_id.errors %}
-                <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </div>
-        <div>
-            {{ form.q.label }}<br>
-            {{ form.q() }}
-            {% for error in form.module_id.errors %}
-                <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </div>
+            {{ form.q() }}<br>
+            {{ form.free.label }}
+            {{ form.free }} oder mehr
         {{ form.submit() }}
-        </div>
     </form>
 	<section>
         <h2>Gruppen</h2>
@@ -73,7 +27,7 @@
                 <rect width="100%" height="100%" fill="blue"></rect><text x="50%" y="50%" fill="blue" dy=".3em">32x32</text></svg>
                 {% endif %}
 			<p>
-				<strong>{{Groups[i].NAME}}</strong>
+				<a href="{{ url_for('groups.group', group_id=Groups[i].ID) }}"><strong>{{Groups[i].NAME}}</strong></a>
                     {%for key, value in Groups[i].items()%}
                     {{key}}: {{value}}<br>
                     {%endfor%}

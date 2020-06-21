@@ -2,56 +2,55 @@
 <html lang="de">
 <head>
     {% block head %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% endblock %} - Lerngruppen</title>
-    <style>
-        *, html {
-            box-sizing: border-box;
-        }
 
-        body {
-            margin: 0;
-            padding: 0 1rem;
-        }
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
 
-        p {
-            margin: 0;
-        }
+    <title>{% block title %}{% endblock %} | Lerngruppen</title>
 
-        #nav-search-form {
-            display: inline-flex;
-            flex-flow: row wrap;
-            align-items: center;
-        }
-
-        #nav-search-form input {
-            width: auto;
-        }
-    </style>
     {% endblock %}
 </head>
 <body>
     {% block body %}
-	<div>
-		Navigation:
-        <a href="/">Index</a>
-        <a href="/logout">Logout</a>
-        <form id="nav-search-form" method="GET" action="/search">
-            <input type="text" name="q" placeholder="Suche Gruppen" aria-label="Suche Gruppen">
-            <button type="submit">Suchen</button>
-        </form>
-	</div>
+    <table>
+      <tr>
+        <td class='left'>
+            <a href="{{ url_for('groups.index') }}">Startseite</a>
+        </td>
+        <td class='center' id="search-header">
+            <form id="nav-search-form" method="GET" action="{{ url_for('groups.search') }}">
+                <input class="search"type="text" name="q" placeholder="Suchbegriff eingeben" aria-label="Suche Gruppen">
+                <button type="submit">Suchen</button>
+                <a href="{{ url_for('groups.search') }}">Erweitert</a>
+            </form>
+        </td>
+        <td class='right'>
+            <a href="{{ url_for('login.profile') }}">Profil</a>
+            <a href="{{ url_for('login.logout') }}">Logout</a>
+        </td>
+      </tr>
+    </table>
     <hr>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <ul>
-        {% for message in messages %}
-        <li>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
+
+    <div class="flash-box">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-wrapper">
+                {% set input_id = 'toggle-' ~ loop.index0 %}
+                <input type="checkbox" id="{{ input_id }}" class="toggle">
+                <label for="{{ input_id }}" class="toggle-label" title="Schließen">X</label>
+                <div class="toggle-controlled flash {{ category }}">
+                    <span class="flash">{{ message }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
     {% block content %}{% endblock %}
     {% endblock %}
 </body>

@@ -1,47 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Index{% endblock %}
+{% block title %}Start{% endblock %}
 {% block head %}
-  {{ super() }}
-  <style type="text/css">
-    .group-message {
-		display: flex;
-		flex-flow: row wrap;
-		align-items: center;
-	}
-
-	.group-message svg {
-		margin-right: 1em;
-	}
-
-	.group-message strong {
-		display: block;
-	}
-
-	.group-message i {
-		display: block;
-		color: dimgray;
-	}
-
-	.item-group {
-		display: flex;
-		flex-flow: row wrap;
-        justify-content: start;
-        margin: 1em 0;
-	}
-
-	.item-group svg {
-		margin-right: 1em;
-	}
-
-	.item-group p strong {
-		display: block;
-	}
-  </style>
+	{{ super() }}
+	<link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
 {% endblock %}
 
 {% block content %}
-	<h1>Startseite</h1>
 	<section>
 		<h2>Letzte Aktivität</h2>
 		{%for i in range(0, Messages_len)%}
@@ -53,16 +18,22 @@
                 <rect width="100%" height="100%" fill="blue"></rect><text x="50%" y="50%" fill="blue" dy=".3em">32x32</text></svg>
                 {% endif %}
 			<p>
+				{% macro group_link() %}
+					<a href="{{ url_for('groups.group', group_id=Messages[i].GRUPPE_ID) }}">
+						{{Messages[i].GRUPPE}} ({{Messages[i].MODUL}})
+					</a>
+				{% endmacro %}
+
 				{% if Messages[i].TYP.startswith('USER') %}
 
-				{% if Messages[i].ERSTELLER_ID == session.get('student_id') %}
-				<strong>Ich in {{Messages[i].GRUPPE}} ({{Messages[i].MODUL}})</strong>
+				{% if Messages[i].ERSTELLER_ID == current_user.id %}
+				<strong>Ich in {{ group_link() }}</strong>
 				{% else %}
-				<strong>{{Messages[i].ERSTELLER}} in {{Messages[i].GRUPPE}} ({{Messages[i].MODUL}})</strong>
+				<strong>{{Messages[i].ERSTELLER}} in {{ group_link() }}</strong>
 				{% endif %}
 
 				{% else %}
-				<strong>{{Messages[i].GRUPPE}} ({{Messages[i].MODUL}})</strong>
+				<strong>{{ group_link() }}</strong>
 				{% endif %}
 				<i>{{Messages[i].DATUM}}</i>
 				{{Messages[i].NACHRICHT}}
@@ -81,7 +52,7 @@
                 <rect width="100%" height="100%" fill="blue"></rect><text x="50%" y="50%" fill="blue" dy=".3em">32x32</text></svg>
                 {% endif %}
 			<p>
-				<strong>{{Groups[i].NAME}}</strong>
+				<a href="{{ url_for('groups.group', group_id=Groups[i].ID) }}"><strong>{{Groups[i].NAME}}</strong></a>
                     {%for key, value in Groups[i].items()%}
                     {{key}}: {{value}}<br>
                     {%endfor%}

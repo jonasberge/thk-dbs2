@@ -1,6 +1,12 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html>
 
-{% block title %}Login{% endblock %}
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login</title>
+  <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+</head>
 
 {% block body %}
     <h1>Anmelden</h1>
@@ -24,3 +30,4 @@
         <p>{{ form.submit() }}</p>
     </form>
 {% endblock %}
+</html>

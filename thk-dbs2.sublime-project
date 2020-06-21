@@ -1,0 +1,23 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+            "folder_exclude_patterns": [
+                "__pycache__",
+                "*.egg-info",
+                ".venv"
+            ],
+            "file_exclude_patterns": [
+
+            ]
+		}
+	],
+    "settings": {
+        "python_virtualenv": "$project_path/prototype/.venv",
+        "python_interpreter": "$project_path/prototype/.venv/bin/python",
+        "python_package_paths": [
+
+        ]
+    }
+}

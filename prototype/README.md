@@ -35,3 +35,17 @@ Voraussetzung ist, dass Python 3 installiert ist.
     ```
 
 5. Öffnen Sie [`http://localhost:5000`](http://localhost:5000) in Ihrem Browser.
+
+6. Mit folgenden Benutzern können Sie sich anmelden:
+    |Mail-Adresse|Passwort|
+    |---|---|
+    | dieter@smail.th-koeln.de | password |
+    | jamie@smail.th-koeln.de | password |
+    | frank@smail.th-koeln.de | password |
+    | andrej@smail.th-koeln.de | password |
+    | tom@smail.th-koeln.de | password |
+    | nuri@smail.th-koeln.de | password |
+    | vivian@smail.th-koeln.de | password |
+    | hilal@smail.th-koeln.de | password |
+    | tayo@smail.th-koeln.de | password |
+    | yuri@smail.th-koeln.de | password |

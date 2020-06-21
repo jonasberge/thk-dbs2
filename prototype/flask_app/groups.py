@@ -106,6 +106,9 @@ def leave_group(group_id):
         else:
             flash('Ein Fehler ist aufgetreten', category='failure')
 
+    if len(get_members(group_id)) == 0:
+        return redirect(url_for('groups.index'))
+
     return redirect(url_for('groups.group', group_id=group_id))
 
 
@@ -127,6 +130,7 @@ def delete_group_member(group_id, student_id):
     cache.delete_memoized(get_groups)
     cache.delete_memoized(get_members)
     cache.delete_memoized(get_messages)
+    cache.delete_memoized(get_related_group_messages, current_user.id)
 
     return True
 
@@ -159,6 +163,7 @@ def insert_group_message(group_id, student_id, message):
 
     db.commit()
     cache.delete_memoized(get_messages, group_id)
+    cache.delete_memoized(get_related_group_messages, current_user.id)
 
 
 
@@ -194,6 +199,7 @@ def update_group_message(group_id, message_id, message):
 
     db.commit()
     cache.delete_memoized(get_messages, group_id)
+    cache.delete_memoized(get_related_group_messages, current_user.id)
     return True
 
 
@@ -232,6 +238,7 @@ def delete_group_message(group_id, message_id):
 
     db.commit()
     cache.delete_memoized(get_messages, group_id)
+    cache.delete_memoized(get_related_group_messages, current_user.id)
     return True
 
 

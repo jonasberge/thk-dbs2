@@ -2,4 +2,4 @@
 
 Entwickelt wurde in DataGrip, daher empfehlen wir beim Review selbiges Programm zu verwenden.
 
-Informationen zur Ausführung des Prototypen sind in [protoype/README.md](prototype/README.md) zu finden.
+Informationen zur Ausführung des Prototypen sind in [protoype/README.md](prototype/) zu finden.

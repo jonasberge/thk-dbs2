@@ -6,9 +6,9 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_login import current_user
 
-from flask_app.db import get_db
-from flask_app.cache import cache
-from flask_app.forms import LoginForm, SearchForm, GroupMessageForm, EditGroupMessageForm
+from app.db import get_db
+from app.cache import cache
+from app.forms import LoginForm, SearchForm, GroupMessageForm, EditGroupMessageForm
 
 bp = Blueprint('groups', __name__)
 

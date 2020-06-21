@@ -5,10 +5,10 @@ from flask import (
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_login import login_user, logout_user, current_user, login_required, LoginManager, UserMixin
-from flask_app.db import get_db
-from flask_app.cache import cache
-from flask_app.forms import LoginForm
-from flask_app.forms import EditProfileForm
+from app.db import get_db
+from app.cache import cache
+from app.forms import LoginForm
+from app.forms import EditProfileForm
 
 import hashlib
 

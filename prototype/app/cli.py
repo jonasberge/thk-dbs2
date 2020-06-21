@@ -6,8 +6,8 @@ import click
 from flask.cli import AppGroup
 from flask import current_app
 
-from flask_app.db import get_db
-from flask_app.demo import add_test_data
+from app.db import get_db
+from app.demo import add_test_data
 
 
 db = AppGroup('db')

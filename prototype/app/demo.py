@@ -1,7 +1,7 @@
 import hashlib
 
 from flask.cli import with_appcontext
-from flask_app.db import get_db
+from app.db import get_db
 
 
 @with_appcontext

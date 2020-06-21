@@ -21,6 +21,7 @@ Voraussetzung ist, dass Python 3 installiert ist.
     $ cp .env.example .env
     ```
     Ändern Sie `ORACLE_USER` und `ORACLE_PASS` zu Ihrer GMID und Passwort.
+    Stellen Sie sicher, dass sie mit der VPN verbunden sind oder sich auf andere Weise im Hochschulnetz befinden.
 
 4. Tabellen erstellen und Test-Daten einfügen
     ```
@@ -28,8 +29,7 @@ Voraussetzung ist, dass Python 3 installiert ist.
     $ flask db demo
     ```
 
-4. Nun kann der Prototyp gestartet werden
-
+4. Nun kann der Prototyp gestartet werden:
     ```
     flask run
     ```

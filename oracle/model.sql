@@ -313,7 +313,6 @@ BEGIN
 
     RETURN name;
 END;
-/
 
 CREATE OR REPLACE FUNCTION IstVerifiziert
     (in_student_id IN INTEGER)
@@ -327,7 +326,6 @@ BEGIN
 
     RETURN ABS(1 - verifizierung_im_gange);
 END;
-/
 
 -- endregion
 
@@ -469,7 +467,7 @@ END;
 
 /* PROCEDURE FÜR LETZER BEITRAG EINER GRUPPE */
 
-CREATE OR REPLACE  PROCEDURE LetzterBeitragVonGruppe(v_gruppe_id gruppe.id%TYPE)
+CREATE OR REPLACE PROCEDURE LetzterBeitragVonGruppe(v_gruppe_id gruppe.id%TYPE)
 Is
 
     type rp_type is record (v_ref_name gruppe.name%TYPE,
@@ -686,7 +684,6 @@ COMPOUND TRIGGER
         END LOOP;
     END AFTER STATEMENT;
 END;
-/
 
 -- TODO [Trigger] Einfügen überlappender Treffzeiten zusammenführen.
 -- Falls ein einzufügender Zeitintervall mit einem anderen überlappt

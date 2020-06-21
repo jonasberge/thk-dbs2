@@ -142,12 +142,14 @@ def edit_profile():
     if form.validate_on_submit():
         # current_user.smail_adresse = form.email.data
         current_user.profil_beschreibung = form.about_me.data
-        print('->', current_user.profil_beschreibung)
         if current_user.save():
             flash('Deine Änderungen wurden gespeichert.', category='success')
         else:
             flash('Ein unbekannter Fehler ist aufgetreten.', category='failure')
-        cache.delete_memoized(load_user, current_user.id)
+
+        # TODO: user_id=current_user.id does not work for some reason.
+        cache.delete_memoized(load_user)
+
         return redirect(url_for('login.profile'))
     elif request.method == 'GET':
         # form.email.data = current_user.smail_adresse

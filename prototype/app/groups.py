@@ -133,6 +133,7 @@ def delete_group_member(group_id, student_id):
 
     db.commit()
     cache.delete_memoized(get_group)
+    cache.delete_memoized(get_my_groups)
     cache.delete_memoized(get_groups)
     cache.delete_memoized(get_members)
     cache.delete_memoized(get_messages)
